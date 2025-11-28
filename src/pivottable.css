@@ -120,6 +120,42 @@ table.pvtTable tbody tr td {
     box-sizing: border-box;
 }
 
+.pvtDropdownChecklist {
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.pvtDropdownChecklistItem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pvtDropdownChecklistItem input {
+    margin: 0;
+}
+
+.pvtAggregatorRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.pvtAggregatorVals .pvtDropdown {
+    margin: 3px 3px 0 0;
+}
+
+.pvtAddAggregator {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.pvtRemoveAggregator {
+    margin-left: auto;
+}
+
 .pvtDropdownValue {
     padding: 2px 5px;
     font-size: 12px;

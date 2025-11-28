@@ -1,6 +1,5 @@
 import React from 'react';
 import tips from './tips';
-import {sortAs} from '../src/Utilities';
 import TableRenderers from '../src/TableRenderers';
 import createPlotlyComponent from 'react-plotly.js/factory';
 import createPlotlyRenderers from '../src/PlotlyRenderers';
@@ -22,6 +21,8 @@ class PivotTableUISmartWrapper extends React.PureComponent {
     }
 
     render() {
+        console.log("state:::", this.state.pivotState);
+        
         return (
             <PivotTableUI
                 renderers={Object.assign(
@@ -44,20 +45,14 @@ export default class App extends React.Component {
             filename: 'Sample Dataset: Tips',
             pivotState: {
                 data: tips,
-                rows: ['Payer Gender'],
-                cols: ['Party Size'],
-                aggregatorName: 'Sum over Sum',
-                vals: ['Tip', 'Total Bill'],
-                rendererName: 'Grouped Column Chart',
-                sorters: {
-                    Meal: sortAs(['Lunch', 'Dinner']),
-                    'Day of Week': sortAs([
-                        'Thursday',
-                        'Friday',
-                        'Saturday',
-                        'Sunday',
-                    ]),
-                },
+                rows: [],
+                cols: [],
+                aggregatorName: 'Count',
+                aggregatorNames: [],
+                aggregations: [],
+                vals: [],
+                rendererName: 'Table',
+                sorters: {},
                 plotlyOptions: {width: 900, height: 500},
                 plotlyConfig: {},
                 tableOptions: {
@@ -68,7 +63,6 @@ export default class App extends React.Component {
                         ) {
                             names.push(record.Meal);
                         });
-                        alert(names.join('\n'));
                     },
                 },
             },

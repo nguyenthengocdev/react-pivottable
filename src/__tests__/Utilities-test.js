@@ -136,6 +136,48 @@ describe('  utils', function() {
         expect(agg.format(val)).toBe('4');
       });
     });
+
+    describe('with multiple aggregators selected', function() {
+      const pd = new utils.PivotData({
+        data: fixtureData,
+        rows: ['gender'],
+        aggregators: utils.aggregators,
+        aggregatorName: 'Count',
+        vals: ['trials'],
+        aggregations: [
+          {key: 'count-gender', aggregatorName: 'Count'},
+          {key: 'sum-trials', aggregatorName: 'Sum', vals: ['trials']},
+        ],
+      });
+
+      it('lists all active aggregators', function() {
+        expect(pd.getAggregatorNames()).toEqual(['Count', 'Sum']);
+      });
+
+      it('defaults to the primary aggregator when none specified', function() {
+        expect(pd.getAggregator(['female'], []).value()).toBe(2);
+      });
+
+      it('can retrieve a specific aggregator by key', function() {
+        expect(pd.getAggregator(['female'], [], 'sum-trials').value()).toBe(197);
+      });
+
+      it('falls back to aggregator names for backwards compatibility', function() {
+        expect(pd.getAggregator(['female'], [], 'Sum').value()).toBe(197);
+      });
+
+      it('adds the primary aggregator when it is not explicitly listed', function() {
+        const alt = new utils.PivotData({
+          data: fixtureData,
+          rows: ['gender'],
+          aggregators: utils.aggregators,
+          aggregatorName: 'Count',
+          vals: ['trials'],
+          aggregatorNames: ['Sum'],
+        });
+        expect(alt.getAggregatorNames()).toEqual(['Count', 'Sum']);
+      });
+    });
   });
 
   describe('.aggregatorTemplates', function() {

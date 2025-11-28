@@ -58,21 +58,45 @@ function makeRenderer(opts = {}) {
       const pivotData = new PivotData(this.props);
       const colAttrs = pivotData.props.cols;
       const rowAttrs = pivotData.props.rows;
+      const aggregations = pivotData.getAggregations();
+      const primaryAggregation = pivotData.getPrimaryAggregation();
+      const hasMultipleAggregators = aggregations.length > 1;
+      const rowAttrsToRender = hasMultipleAggregators
+        ? rowAttrs.concat(['Values'])
+        : rowAttrs;
       const rowKeys = pivotData.getRowKeys();
+      const baseRowKeys =
+        hasMultipleAggregators && rowKeys.length === 0 ? [[]] : rowKeys;
+      const renderedRows = hasMultipleAggregators
+        ? baseRowKeys.reduce((acc, rowKey) => {
+            aggregations.forEach(agg => {
+              acc.push({
+                displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
+                actualKey: rowKey,
+                aggregationKey: agg.key,
+              });
+            });
+            return acc;
+          }, [])
+        : baseRowKeys.map(rowKey => ({
+            displayKey: rowKey,
+            actualKey: rowKey,
+            aggregationKey: primaryAggregation.key,
+          }));
+      const rowKeyValues = renderedRows.map(r => r.displayKey);
       const colKeys = pivotData.getColKeys();
-      const grandTotalAggregator = pivotData.getAggregator([], []);
 
       let valueCellColors = () => {};
       let rowTotalColors = () => {};
       let colTotalColors = () => {};
-      if (opts.heatmapMode) {
+      if (opts.heatmapMode && !hasMultipleAggregators) {
         const colorScaleGenerator = this.props.tableColorScaleGenerator;
         const rowTotalValues = colKeys.map(x =>
-          pivotData.getAggregator([], x).value()
+          pivotData.getAggregator([], x, primaryAggregation.key).value()
         );
         rowTotalColors = colorScaleGenerator(rowTotalValues);
         const colTotalValues = rowKeys.map(x =>
-          pivotData.getAggregator(x, []).value()
+          pivotData.getAggregator(x, [], primaryAggregation.key).value()
         );
         colTotalColors = colorScaleGenerator(colTotalValues);
 
@@ -80,7 +104,9 @@ function makeRenderer(opts = {}) {
           const allValues = [];
           rowKeys.map(r =>
             colKeys.map(c =>
-              allValues.push(pivotData.getAggregator(r, c).value())
+              allValues.push(
+                pivotData.getAggregator(r, c, primaryAggregation.key).value()
+              )
             )
           );
           const colorScale = colorScaleGenerator(allValues);
@@ -89,7 +115,7 @@ function makeRenderer(opts = {}) {
           const rowColorScales = {};
           rowKeys.map(r => {
             const rowValues = colKeys.map(x =>
-              pivotData.getAggregator(r, x).value()
+              pivotData.getAggregator(r, x, primaryAggregation.key).value()
             );
             rowColorScales[r] = colorScaleGenerator(rowValues);
           });
@@ -98,7 +124,7 @@ function makeRenderer(opts = {}) {
           const colColorScales = {};
           colKeys.map(c => {
             const colValues = rowKeys.map(x =>
-              pivotData.getAggregator(x, c).value()
+              pivotData.getAggregator(x, c, primaryAggregation.key).value()
             );
             colColorScales[c] = colorScaleGenerator(colValues);
           });
@@ -138,8 +164,11 @@ function makeRenderer(opts = {}) {
             {colAttrs.map(function(c, j) {
               return (
                 <tr key={`colAttr${j}`}>
-                  {j === 0 && rowAttrs.length !== 0 && (
-                    <th colSpan={rowAttrs.length} rowSpan={colAttrs.length} />
+                  {j === 0 && rowAttrsToRender.length !== 0 && (
+                    <th
+                      colSpan={rowAttrsToRender.length}
+                      rowSpan={colAttrs.length}
+                    />
                   )}
                   <th className="pvtAxisLabel">{c}</th>
                   {colKeys.map(function(colKey, i) {
@@ -153,7 +182,8 @@ function makeRenderer(opts = {}) {
                         key={`colKey${i}`}
                         colSpan={x}
                         rowSpan={
-                          j === colAttrs.length - 1 && rowAttrs.length !== 0
+                          j === colAttrs.length - 1 &&
+                          rowAttrsToRender.length !== 0
                             ? 2
                             : 1
                         }
@@ -167,7 +197,8 @@ function makeRenderer(opts = {}) {
                     <th
                       className="pvtTotalLabel"
                       rowSpan={
-                        colAttrs.length + (rowAttrs.length === 0 ? 0 : 1)
+                        colAttrs.length +
+                        (rowAttrsToRender.length === 0 ? 0 : 1)
                       }
                     >
                       Totals
@@ -177,9 +208,9 @@ function makeRenderer(opts = {}) {
               );
             })}
 
-            {rowAttrs.length !== 0 && (
+            {rowAttrsToRender.length !== 0 && (
               <tr>
-                {rowAttrs.map(function(r, i) {
+                {rowAttrsToRender.map(function(r, i) {
                   return (
                     <th className="pvtAxisLabel" key={`rowAttr${i}`}>
                       {r}
@@ -194,12 +225,17 @@ function makeRenderer(opts = {}) {
           </thead>
 
           <tbody>
-            {rowKeys.map(function(rowKey, i) {
-              const totalAggregator = pivotData.getAggregator(rowKey, []);
+            {renderedRows.map(function(rowMeta, i) {
+              const totalAggregator = pivotData.getAggregator(
+                rowMeta.actualKey,
+                [],
+                rowMeta.aggregationKey
+              );
+              const displayKey = rowMeta.displayKey;
               return (
                 <tr key={`rowKeyRow${i}`}>
-                  {rowKey.map(function(txt, j) {
-                    const x = spanSize(rowKeys, i, j);
+                  {displayKey.map(function(txt, j) {
+                    const x = spanSize(rowKeyValues, i, j);
                     if (x === -1) {
                       return null;
                     }
@@ -209,7 +245,8 @@ function makeRenderer(opts = {}) {
                         className="pvtRowLabel"
                         rowSpan={x}
                         colSpan={
-                          j === rowAttrs.length - 1 && colAttrs.length !== 0
+                          j === rowAttrsToRender.length - 1 &&
+                          colAttrs.length !== 0
                             ? 2
                             : 1
                         }
@@ -219,22 +256,27 @@ function makeRenderer(opts = {}) {
                     );
                   })}
                   {colKeys.map(function(colKey, j) {
-                    const aggregator = pivotData.getAggregator(rowKey, colKey);
+                    const aggregator = pivotData.getAggregator(
+                      rowMeta.actualKey,
+                      colKey,
+                      rowMeta.aggregationKey
+                    );
+                    const value = aggregator.value();
                     return (
                       <td
                         className="pvtVal"
                         key={`pvtVal${i}-${j}`}
                         onClick={
                           getClickHandler &&
-                          getClickHandler(aggregator.value(), rowKey, colKey)
+                          getClickHandler(value, rowMeta.actualKey, colKey)
                         }
                         style={valueCellColors(
-                          rowKey,
+                          rowMeta.actualKey,
                           colKey,
-                          aggregator.value()
+                          value
                         )}
                       >
-                        {aggregator.format(aggregator.value())}
+                        {aggregator.format(value)}
                       </td>
                     );
                   })}
@@ -242,7 +284,11 @@ function makeRenderer(opts = {}) {
                     className="pvtTotal"
                     onClick={
                       getClickHandler &&
-                      getClickHandler(totalAggregator.value(), rowKey, [null])
+                      getClickHandler(
+                        totalAggregator.value(),
+                        rowMeta.actualKey,
+                        [null]
+                      )
                     }
                     style={colTotalColors(totalAggregator.value())}
                   >
@@ -252,41 +298,72 @@ function makeRenderer(opts = {}) {
               );
             })}
 
-            <tr>
-              <th
-                className="pvtTotalLabel"
-                colSpan={rowAttrs.length + (colAttrs.length === 0 ? 0 : 1)}
-              >
-                Totals
-              </th>
-
-              {colKeys.map(function(colKey, i) {
-                const totalAggregator = pivotData.getAggregator([], colKey);
-                return (
-                  <td
-                    className="pvtTotal"
-                    key={`total${i}`}
-                    onClick={
-                      getClickHandler &&
-                      getClickHandler(totalAggregator.value(), [null], colKey)
-                    }
-                    style={rowTotalColors(totalAggregator.value())}
-                  >
-                    {totalAggregator.format(totalAggregator.value())}
-                  </td>
+            {(hasMultipleAggregators ? aggregations : [primaryAggregation]).map(
+              function(agg) {
+                const grandTotalAggregator = pivotData.getAggregator(
+                  [],
+                  [],
+                  agg.key
                 );
-              })}
+                const totalLabel = hasMultipleAggregators
+                  ? `Totals – ${agg.label || agg.aggregatorName}`
+                  : 'Totals';
+                return (
+                  <tr key={`totalRow-${agg.key}`}>
+                    <th
+                      className="pvtTotalLabel"
+                      colSpan={
+                        rowAttrsToRender.length +
+                        (colAttrs.length === 0 ? 0 : 1)
+                      }
+                    >
+                      {totalLabel}
+                    </th>
 
-              <td
-                onClick={
-                  getClickHandler &&
-                  getClickHandler(grandTotalAggregator.value(), [null], [null])
-                }
-                className="pvtGrandTotal"
-              >
-                {grandTotalAggregator.format(grandTotalAggregator.value())}
-              </td>
-            </tr>
+                    {colKeys.map(function(colKey, i) {
+                      const totalAggregator = pivotData.getAggregator(
+                        [],
+                        colKey,
+                        agg.key
+                      );
+                      return (
+                        <td
+                          className="pvtTotal"
+                          key={`total${agg.key}-${i}`}
+                          onClick={
+                            getClickHandler &&
+                            getClickHandler(
+                              totalAggregator.value(),
+                              [null],
+                              colKey
+                            )
+                          }
+                          style={rowTotalColors(totalAggregator.value())}
+                        >
+                          {totalAggregator.format(totalAggregator.value())}
+                        </td>
+                      );
+                    })}
+
+                    <td
+                      onClick={
+                        getClickHandler &&
+                        getClickHandler(
+                          grandTotalAggregator.value(),
+                          [null],
+                          [null]
+                        )
+                      }
+                      className="pvtGrandTotal"
+                    >
+                      {grandTotalAggregator.format(
+                        grandTotalAggregator.value()
+                      )}
+                    </td>
+                  </tr>
+                );
+              }
+            )}
           </tbody>
         </table>
       );
@@ -305,26 +382,50 @@ function makeRenderer(opts = {}) {
 class TSVExportRenderer extends React.PureComponent {
   render() {
     const pivotData = new PivotData(this.props);
+    const rowAttrs = pivotData.props.rows;
+    const aggregations = pivotData.getAggregations();
+    const hasMultipleAggregators = aggregations.length > 1;
     const rowKeys = pivotData.getRowKeys();
     const colKeys = pivotData.getColKeys();
-    if (rowKeys.length === 0) {
-      rowKeys.push([]);
-    }
-    if (colKeys.length === 0) {
-      colKeys.push([]);
-    }
+    const safeRowKeys = rowKeys.length === 0 ? [[]] : rowKeys;
+    const safeColKeys = colKeys.length === 0 ? [[]] : colKeys;
 
-    const headerRow = pivotData.props.rows.map(r => r);
-    if (colKeys.length === 1 && colKeys[0].length === 0) {
-      headerRow.push(this.props.aggregatorName);
+    const rowEntries = hasMultipleAggregators
+      ? safeRowKeys.reduce((acc, rowKey) => {
+          aggregations.forEach(agg => {
+            acc.push({rowKey, aggregationKey: agg.key, label: agg.label});
+          });
+          return acc;
+        }, [])
+      : safeRowKeys.map(rowKey => ({
+          rowKey,
+          aggregationKey: aggregations[0].key,
+          label: aggregations[0].label || aggregations[0].aggregatorName,
+        }));
+
+    const headerRow = rowAttrs.slice();
+    if (hasMultipleAggregators) {
+      headerRow.push('Values');
+    }
+    if (safeColKeys.length === 1 && safeColKeys[0].length === 0) {
+      headerRow.push(
+        hasMultipleAggregators
+          ? 'Value'
+          : aggregations[0].label || this.props.aggregatorName
+      );
     } else {
-      colKeys.map(c => headerRow.push(c.join('-')));
+      safeColKeys.map(c => headerRow.push(c.join('-')));
     }
 
-    const result = rowKeys.map(r => {
-      const row = r.map(x => x);
-      colKeys.map(c => {
-        const v = pivotData.getAggregator(r, c).value();
+    const result = rowEntries.map(entry => {
+      const row = entry.rowKey.map(x => x);
+      if (hasMultipleAggregators) {
+        row.push(entry.label || '');
+      }
+      safeColKeys.map(colKey => {
+        const v = pivotData
+          .getAggregator(entry.rowKey, colKey, entry.aggregationKey)
+          .value();
         row.push(v ? v : '');
       });
       return row;

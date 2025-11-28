@@ -6,6 +6,10 @@ import PivotTable from './PivotTable';
 import Sortable from 'react-sortablejs';
 import Draggable from 'react-draggable';
 
+const AGG_KEY_RADIX = 36;
+const AGG_KEY_OFFSET = 2;
+const AGG_KEY_LENGTH = 7;
+
 /* eslint-disable react/prop-types */
 // eslint can't see inherited propTypes!
 
@@ -245,6 +249,7 @@ class PivotTableUI extends React.PureComponent {
   }
 
   componentDidUpdate() {
+    console.log("this.props:::",this.props);
     this.materializeInput(this.props.data);
   }
 
@@ -290,6 +295,134 @@ class PivotTableUI extends React.PureComponent {
 
   propUpdater(key) {
     return value => this.sendPropUpdate({[key]: {$set: value}});
+  }
+
+  getCurrentAggregations() {
+    const source =
+      Array.isArray(this.props.aggregations) &&
+      this.props.aggregations.length > 0
+        ? this.props.aggregations
+        : [
+            
+          ];
+    const fallbackAggregator =
+      this.props.aggregatorName || Object.keys(this.props.aggregators)[0];
+    return source.map((agg, idx) => {
+      const aggregatorName = agg.aggregatorName || fallbackAggregator;
+      const vals = Array.isArray(agg.vals) ? agg.vals.slice() : [];
+      return {
+        key: agg.key || `agg-${idx}`,
+        aggregatorName,
+        vals: this.defaultValsForAggregator(aggregatorName, vals),
+      };
+    });
+  }
+
+  numInputsForAggregator(name) {
+    if (!name || !(name in this.props.aggregators)) {
+      return 0;
+    }
+    const instance = this.props.aggregators[name]([])();
+    return instance.numInputs || 0;
+  }
+
+  getAttributeOptions() {
+    return Object.keys(this.state.attrValues).filter(
+      e =>
+        !this.props.hiddenAttributes.includes(e) &&
+        !this.props.hiddenFromAggregators.includes(e)
+    );
+  }
+
+  defaultValsForAggregator(name, currentVals = []) {
+    const required = this.numInputsForAggregator(name);
+    if (required === 0) {
+      return [];
+    }
+    const options = this.getAttributeOptions();
+    const next = currentVals.slice(0, required);
+    for (let i = 0; i < required; i++) {
+      if (!next[i]) {
+        next[i] = options[i % options.length] || null;
+      }
+    }
+    return next;
+  }
+
+  generateAggregationKey() {
+    const timestamp = Date.now().toString(AGG_KEY_RADIX);
+    const randomPart = Math.random()
+      .toString(AGG_KEY_RADIX)
+      .slice(AGG_KEY_OFFSET, AGG_KEY_OFFSET + AGG_KEY_LENGTH);
+    return `agg-${timestamp}-${randomPart}`;
+  }
+
+  updateAggregations(nextAggregations) {
+    if (!nextAggregations.length) {
+      return;
+    }
+    const sanitized = nextAggregations.map((agg, idx) => ({
+      key: agg.key || `agg-${idx}`,
+      aggregatorName:
+        agg.aggregatorName ||
+        this.props.aggregatorName ||
+        Object.keys(this.props.aggregators)[0],
+      vals: this.defaultValsForAggregator(
+        agg.aggregatorName ||
+          this.props.aggregatorName ||
+          Object.keys(this.props.aggregators)[0],
+        Array.isArray(agg.vals) ? agg.vals.slice() : []
+      ),
+    }));
+    const primary = sanitized[0];
+    this.sendPropUpdate({
+      aggregations: {$set: sanitized},
+      aggregatorName: {$set: primary.aggregatorName},
+      aggregatorNames: {$set: sanitized.map(a => a.aggregatorName)},
+      vals: {$set: primary.vals},
+    });
+  }
+
+  setAggregationAggregator(index, aggregatorName) {
+    const aggregations = this.getCurrentAggregations();
+    const next = Object.assign({}, aggregations[index], {
+      aggregatorName,
+    });
+    next.vals = this.defaultValsForAggregator(aggregatorName, next.vals);
+    aggregations[index] = next;
+    this.updateAggregations(aggregations);
+  }
+
+  setAggregationVal(index, valIndex, value) {
+    const aggregations = this.getCurrentAggregations();
+    const next = Object.assign({}, aggregations[index]);
+    const vals = Array.isArray(next.vals) ? next.vals.slice() : [];
+    vals[valIndex] = value;
+    next.vals = vals;
+    aggregations[index] = next;
+    this.updateAggregations(aggregations);
+  }
+
+  addAggregationRow() {
+    const aggregations = this.getCurrentAggregations();
+    const defaultAggregator =
+      this.props.aggregatorName || Object.keys(this.props.aggregators)[0];
+    const key = this.generateAggregationKey();
+    aggregations.push({
+      key,
+      aggregatorName: defaultAggregator,
+      vals: this.defaultValsForAggregator(defaultAggregator),
+    });
+    this.updateAggregations(aggregations);
+  }
+
+  removeAggregationRow(index) {
+    const aggregations = this.getCurrentAggregations();
+    if (aggregations.length === 1) {
+      return;
+    }
+    aggregations.splice(index, 1);
+    this.updateAggregations(aggregations);
   }
 
   setValuesInFilter(attribute, values) {
@@ -372,12 +505,12 @@ class PivotTableUI extends React.PureComponent {
   }
 
   render() {
-    const numValsAllowed =
-      this.props.aggregators[this.props.aggregatorName]([])().numInputs || 0;
-
-    const aggregatorCellOutlet = this.props.aggregators[
-      this.props.aggregatorName
-    ]([])().outlet;
+    const aggregations = this.getCurrentAggregations();
+    const primaryAggregation = aggregations[0];
+    const aggregatorCellOutlet =
+      primaryAggregation &&
+      this.props.aggregators[primaryAggregation.aggregatorName] &&
+      this.props.aggregators[primaryAggregation.aggregatorName]([])().outlet;
 
     const rendererName =
       this.props.rendererName in this.props.renderers
@@ -415,20 +548,91 @@ class PivotTableUI extends React.PureComponent {
       value_z_to_a: {rowSymbol: '↑', colSymbol: '←', next: 'key_a_to_z'},
     };
 
+    const attributeOptions = this.getAttributeOptions();
     const aggregatorCell = (
       <td className="pvtVals">
-        <Dropdown
-          current={this.props.aggregatorName}
-          values={Object.keys(this.props.aggregators)}
-          open={this.isOpen('aggregators')}
-          zIndex={this.isOpen('aggregators') ? this.state.maxZIndex + 1 : 1}
-          toggle={() =>
-            this.setState({
-              openDropdown: this.isOpen('aggregators') ? false : 'aggregators',
-            })
-          }
-          setValue={this.propUpdater('aggregatorName')}
-        />
+        {aggregations.map((agg, idx) => {
+          const aggDropdownKey = `aggregation-${agg.key}-agg`;
+          const numValsAllowed = this.numInputsForAggregator(
+            agg.aggregatorName
+          );
+          const vals = this.defaultValsForAggregator(
+            agg.aggregatorName,
+            agg.vals
+          );
+          return (
+            <div className="pvtAggregatorRow" key={agg.key || idx}>
+              <Dropdown
+                current={agg.aggregatorName}
+                values={Object.keys(this.props.aggregators)}
+                open={this.isOpen(aggDropdownKey)}
+                zIndex={
+                  this.isOpen(aggDropdownKey) ? this.state.maxZIndex + 1 : 1
+                }
+                toggle={() =>
+                  this.setState({
+                    openDropdown: this.isOpen(aggDropdownKey)
+                      ? false
+                      : aggDropdownKey,
+                  })
+                }
+                setValue={value => this.setAggregationAggregator(idx, value)}
+              />
+              {numValsAllowed > 0 && (
+                <div className="pvtAggregatorVals">
+                  {new Array(numValsAllowed).fill().map((n, i) => {
+                    const valDropdownKey = `aggregation-${agg.key}-val-${i}`;
+                    return (
+                      <Dropdown
+                        key={`agg-val-${agg.key}-${i}`}
+                        current={vals[i]}
+                        values={attributeOptions}
+                        open={this.isOpen(valDropdownKey)}
+                        zIndex={
+                          this.isOpen(valDropdownKey)
+                            ? this.state.maxZIndex + 1
+                            : 1
+                        }
+                        toggle={() =>
+                          this.setState({
+                            openDropdown: this.isOpen(valDropdownKey)
+                              ? false
+                              : valDropdownKey,
+                          })
+                        }
+                        setValue={value =>
+                          this.setAggregationVal(idx, i, value)
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
+              {aggregations.length > 1 && (
+                <button
+                  type="button"
+                  className="pvtButton pvtRemoveAggregator"
+                  onClick={e => {
+                    e.stopPropagation();
+                    this.removeAggregationRow(idx);
+                  }}
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <button
+          type="button"
+          className="pvtButton pvtAddAggregator"
+          onClick={e => {
+            e.stopPropagation();
+            this.addAggregationRow();
+          }}
+        >
+          + Add Value
+        </button>
         <a
           role="button"
           className="pvtRowOrder"
@@ -447,31 +651,6 @@ class PivotTableUI extends React.PureComponent {
         >
           {sortIcons[this.props.colOrder].colSymbol}
         </a>
-        {numValsAllowed > 0 && <br />}
-        {new Array(numValsAllowed).fill().map((n, i) => [
-          <Dropdown
-            key={i}
-            current={this.props.vals[i]}
-            values={Object.keys(this.state.attrValues).filter(
-              e =>
-                !this.props.hiddenAttributes.includes(e) &&
-                !this.props.hiddenFromAggregators.includes(e)
-            )}
-            open={this.isOpen(`val${i}`)}
-            zIndex={this.isOpen(`val${i}`) ? this.state.maxZIndex + 1 : 1}
-            toggle={() =>
-              this.setState({
-                openDropdown: this.isOpen(`val${i}`) ? false : `val${i}`,
-              })
-            }
-            setValue={value =>
-              this.sendPropUpdate({
-                vals: {$splice: [[i, 1, value]]},
-              })
-            }
-          />,
-          i + 1 !== numValsAllowed ? <br key={`br${i}`} /> : null,
-        ])}
         {aggregatorCellOutlet && aggregatorCellOutlet(this.props.data)}
       </td>
     );

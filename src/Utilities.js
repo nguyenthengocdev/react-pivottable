@@ -418,6 +418,30 @@ aggregatorTemplates.var = (ddof, f) =>
 aggregatorTemplates.stdev = (ddof, f) =>
   aggregatorTemplates.runningStat('stdev', ddof, f);
 
+class AggregatorCell {
+  constructor(instances, primaryKey) {
+    this.instances = instances;
+    this.primaryKey = primaryKey;
+  }
+
+  push(record) {
+    Object.keys(this.instances).forEach(key => {
+      this.instances[key].push(record);
+    });
+  }
+
+  getInstance(key) {
+    const targetKey = key || this.primaryKey;
+    if (targetKey && this.instances[targetKey]) {
+      return this.instances[targetKey];
+    }
+    const first =
+      this.instances[this.primaryKey] ||
+      this.instances[Object.keys(this.instances)[0]];
+    return first || null;
+  }
+}
+
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
   Count: tpl.count(usFmtInt),
@@ -539,15 +563,26 @@ class PivotData {
       'PivotData'
     );
 
-    this.aggregator = this.props.aggregators[this.props.aggregatorName](
-      this.props.vals
-    );
+    this.aggregations = this.normalizeAggregations();
+    this.aggregationKeyLookup = {};
+    this.aggregations.forEach(agg => {
+      if (!(agg.aggregatorName in this.aggregationKeyLookup)) {
+        this.aggregationKeyLookup[agg.aggregatorName] = agg.key;
+      }
+    });
+    if (this.aggregations.length === 0) {
+      throw new Error('PivotData requires at least one aggregation');
+    }
+    this.primaryAggregation = this.aggregations[0];
+    this.primaryAggregatorName = this.primaryAggregation.aggregatorName;
+
+    this.aggregatorFactories = this.buildAggregatorFactories();
     this.tree = {};
     this.rowKeys = [];
     this.colKeys = [];
     this.rowTotals = {};
     this.colTotals = {};
-    this.allTotal = this.aggregator(this, [], []);
+    this.allTotal = this.createAggregatorCell([], []);
     this.sorted = false;
 
     // iterate through input, accumulating data for cells
@@ -666,7 +701,7 @@ class PivotData {
     if (rowKey.length !== 0) {
       if (!this.rowTotals[flatRowKey]) {
         this.rowKeys.push(rowKey);
-        this.rowTotals[flatRowKey] = this.aggregator(this, rowKey, []);
+        this.rowTotals[flatRowKey] = this.createAggregatorCell(rowKey, []);
       }
       this.rowTotals[flatRowKey].push(record);
     }
@@ -674,7 +709,7 @@ class PivotData {
     if (colKey.length !== 0) {
       if (!this.colTotals[flatColKey]) {
         this.colKeys.push(colKey);
-        this.colTotals[flatColKey] = this.aggregator(this, [], colKey);
+        this.colTotals[flatColKey] = this.createAggregatorCell([], colKey);
       }
       this.colTotals[flatColKey].push(record);
     }
@@ -684,8 +719,7 @@ class PivotData {
         this.tree[flatRowKey] = {};
       }
       if (!this.tree[flatRowKey][flatColKey]) {
-        this.tree[flatRowKey][flatColKey] = this.aggregator(
-          this,
+        this.tree[flatRowKey][flatColKey] = this.createAggregatorCell(
           rowKey,
           colKey
         );
@@ -694,31 +728,140 @@ class PivotData {
     }
   }
 
-  getAggregator(rowKey, colKey) {
-    let agg;
+  getAggregator(rowKey, colKey, aggregationKey = this.primaryAggregation.key) {
+    let resolvedKey = aggregationKey;
+    if (
+      resolvedKey &&
+      !(resolvedKey in this.aggregatorFactories) &&
+      this.aggregationKeyLookup[resolvedKey]
+    ) {
+      resolvedKey = this.aggregationKeyLookup[resolvedKey];
+    }
+    const cell = this.getAggregatorCell(rowKey, colKey);
+    if (!cell) {
+      return PivotData.emptyAggregator;
+    }
+    return cell.getInstance(resolvedKey) || PivotData.emptyAggregator;
+  }
+
+  getAggregatorCell(rowKey, colKey) {
+    let cell;
     const flatRowKey = rowKey.join(String.fromCharCode(0));
     const flatColKey = colKey.join(String.fromCharCode(0));
     if (rowKey.length === 0 && colKey.length === 0) {
-      agg = this.allTotal;
+      cell = this.allTotal;
     } else if (rowKey.length === 0) {
-      agg = this.colTotals[flatColKey];
+      cell = this.colTotals[flatColKey];
     } else if (colKey.length === 0) {
-      agg = this.rowTotals[flatRowKey];
+      cell = this.rowTotals[flatRowKey];
     } else {
-      agg = this.tree[flatRowKey][flatColKey];
+      cell =
+        this.tree[flatRowKey] && this.tree[flatRowKey][flatColKey]
+          ? this.tree[flatRowKey][flatColKey]
+          : null;
     }
-    return (
-      agg || {
-        value() {
-          return null;
-        },
-        format() {
-          return '';
-        },
+    return cell || null;
+  }
+
+  getAggregatorNames() {
+    return this.aggregations.map(agg => agg.aggregatorName);
+  }
+
+  getAggregations() {
+    return this.aggregations.map(agg => Object.assign({}, agg));
+  }
+
+  getPrimaryAggregatorName() {
+    return this.primaryAggregatorName;
+  }
+
+  getPrimaryAggregation() {
+    return Object.assign({}, this.primaryAggregation);
+  }
+
+  getActiveAggregatorNames() {
+    const list = Array.isArray(this.props.aggregatorNames)
+      ? this.props.aggregatorNames.slice()
+      : [];
+    if (!list.includes(this.props.aggregatorName)) {
+      list.unshift(this.props.aggregatorName);
+    }
+    const unique = [];
+    list.forEach(name => {
+      if (name && !unique.includes(name)) {
+        unique.push(name);
       }
-    );
+    });
+    return unique.length ? unique : [this.props.aggregatorName];
+  }
+
+  normalizeAggregations() {
+    let aggregations = [];
+    if (
+      Array.isArray(this.props.aggregations) &&
+      this.props.aggregations.length
+    ) {
+      aggregations = this.props.aggregations;
+    } else {
+      const names = this.getActiveAggregatorNames();
+      aggregations = names.map(name => ({
+        aggregatorName: name,
+        vals: this.props.vals,
+      }));
+    }
+    return aggregations.map((agg, idx) => {
+      const aggregatorName = agg.aggregatorName || this.props.aggregatorName;
+      const vals = typeof agg.vals !== 'undefined' ? agg.vals : this.props.vals;
+      const key =
+        agg.key ||
+        `${aggregatorName || 'agg'}-${vals ? vals.join('|') : ''}-${idx}`;
+      const label =
+        agg.label ||
+        (vals && vals.length
+          ? `${aggregatorName} of ${vals.join(', ')}`
+          : aggregatorName);
+      return {
+        key,
+        aggregatorName,
+        vals,
+        label,
+      };
+    });
+  }
+
+  buildAggregatorFactories() {
+    const factories = {};
+    this.aggregations.forEach(agg => {
+      if (!(agg.aggregatorName in this.props.aggregators)) {
+        throw new Error(`unknown aggregator ${agg.aggregatorName}`);
+      }
+      factories[agg.key] = this.props.aggregators[agg.aggregatorName](agg.vals);
+    });
+    return factories;
+  }
+
+  createAggregatorCell(rowKey, colKey) {
+    const instances = {};
+    this.aggregations.forEach(agg => {
+      instances[agg.key] = this.aggregatorFactories[agg.key](
+        this,
+        rowKey,
+        colKey
+      );
+    });
+    return new AggregatorCell(instances, this.primaryAggregation.key);
   }
 }
+
+PivotData.emptyAggregator = {
+  push() {},
+  value() {
+    return null;
+  },
+  format() {
+    return '';
+  },
+};
 
 // can handle arrays or jQuery selections of tables
 PivotData.forEachRecord = function(input, derivedAttributes, f) {
@@ -778,6 +921,8 @@ PivotData.defaultProps = {
   rows: [],
   vals: [],
   aggregatorName: 'Count',
+  aggregatorNames: [],
+  aggregations: [],
   sorters: {},
   valueFilter: {},
   rowOrder: 'key_a_to_z',
@@ -789,6 +934,15 @@ PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
   aggregatorName: PropTypes.string,
+  aggregatorNames: PropTypes.arrayOf(PropTypes.string),
+  aggregations: PropTypes.arrayOf(
+    PropTypes.shape({
+      key: PropTypes.string,
+      aggregatorName: PropTypes.string,
+      vals: PropTypes.arrayOf(PropTypes.string),
+      label: PropTypes.string,
+    })
+  ),
   cols: PropTypes.arrayOf(PropTypes.string),
   rows: PropTypes.arrayOf(PropTypes.string),
   vals: PropTypes.arrayOf(PropTypes.string),
