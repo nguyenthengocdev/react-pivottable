@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { PivotData } from './Utilities';
+import { PivotData, numberFormat } from './Utilities';
 
 // helper function for setting row/col-span in pivotTableRenderer
 const spanSize = function (arr, i, j) {
@@ -122,6 +122,119 @@ function mergeStyles(...styles) {
   return Object.assign({}, ...styles.filter(s => s && typeof s === 'object'));
 }
 
+// Helper function to check if a string contains special characters (like -, /, etc.)
+// This prevents formatting of date strings or formatted strings
+// Only pure numeric strings (with optional decimal point and minus sign) should be formatted
+function containsSpecialCharacters(str) {
+  if (typeof str !== 'string') {
+    return false;
+  }
+  const trimmed = str.trim();
+  // Check if string contains any special characters that indicate it's not a raw number
+  // Allow: digits, decimal point, minus sign at start, plus sign at start, spaces
+  // Disallow: hyphens in middle, slashes, and other special characters
+  const pureNumericPattern = /^-?\d*\.?\d+$/;
+  return !pureNumericPattern.test(trimmed);
+}
+
+// Helper function to check if an aggregation should skip formatting
+// Aggregations like Count, First, Last should not be formatted
+// Aggregations like Sum, Average should be formatted
+function shouldSkipFormattingForAggregation(aggregatorName) {
+  if (!aggregatorName) {
+    return false;
+  }
+
+  const name = aggregatorName.toLowerCase();
+  // Skip formatting for these aggregation types
+  const skipFormattingAggregations = [
+    'count',
+    'count unique values',
+    'list unique values',
+    'first',
+    'last',
+    'minimum',
+    'maximum',
+  ];
+  return skipFormattingAggregations.includes(name);
+}
+
+// Apply cell formatting rules to a value
+function applyCellFormatting(value, cellFormatting, defaultFormatter, aggregatorName = null) {
+  // Don't format if aggregation type should skip formatting (e.g., Count, First, Last)
+  // Only use defaultFormatter if value is numeric, otherwise return as-is
+  const isNumeric =
+    (typeof value === 'number' && !isNaN(value) && isFinite(value)) ||
+    (typeof value === 'string' && value.trim() !== '' && !containsSpecialCharacters(value) && !isNaN(parseFloat(value)) && isFinite(parseFloat(value)));
+  if (shouldSkipFormattingForAggregation(aggregatorName)) {
+    if (isNumeric && defaultFormatter) {
+      return defaultFormatter(value);
+    }
+    // Return raw value for non-numeric values (dates, strings, etc.)
+    return value;
+  }
+
+  // If no cellFormatting rules, always use default formatter to return to original format
+  // This ensures values return to their original format when cellFormatting is cleared
+  // Check for all possible cases: null, undefined, empty object, empty rules array
+  const hasFormattingRules = cellFormatting &&
+    typeof cellFormatting === 'object' &&
+    Array.isArray(cellFormatting.rules) &&
+    cellFormatting.rules.length > 0 &&
+    cellFormatting.rules.some(rule => rule && rule.format);
+
+  if (!hasFormattingRules) {
+    // When cellFormatting rules are cleared, return the raw value (not formatted)
+    // This ensures all cells (regular, Totals, Aggregation) return to their original unformatted state
+    // Return the raw numeric value for numbers, or the value as-is for other types
+    if (isNumeric) {
+      // Return raw numeric value without any formatting
+      if (typeof value === 'number') {
+        return value;
+      }
+      // For string numbers, return the parsed numeric value
+      return parseFloat(value);
+    }
+    // For non-numeric values (dates, strings, etc.), return as-is
+    return value;
+  }
+
+  // Don't format if it contains special characters (dates, formatted strings, etc.)
+  // Only check this when cellFormatting rules exist
+  if (containsSpecialCharacters(value)) {
+    return defaultFormatter ? defaultFormatter(value) : String(value);
+  }
+
+  // Check if value is a number - only apply custom formatting to raw numbers
+  // Handle both number type and string numbers (e.g., "123.45")
+  // Exclude strings with special characters from formatting
+  let numericValue = value;
+
+  // Convert string numbers to actual numbers for formatting
+  if (isNumeric && typeof value === 'string') {
+    numericValue = parseFloat(value);
+  }
+
+  // Use the first rule (all rules apply to all values)
+  const matchingRule = cellFormatting.rules[0];
+
+  // If we found a matching rule and value is numeric, apply its formatting
+  if (matchingRule && matchingRule.format && isNumeric) {
+    const format = matchingRule.format;
+    const formatter = numberFormat({
+      digitsAfterDecimal: ('decimalPlaces' in format) ? format.decimalPlaces : 2,
+      thousandsSep: ('thousandsSep' in format) ? format.thousandsSep : ',',
+      decimalSep: ('decimalSep' in format) ? format.decimalSep : '.',
+      prefix: ('prefix' in format) ? format.prefix : '',
+      suffix: ('suffix' in format) ? format.suffix : '',
+    });
+    return formatter(numericValue);
+  }
+
+  // Not numeric or no matching rule, use default formatter
+  return defaultFormatter ? defaultFormatter(value) : String(value);
+}
+
 function makeRenderer(opts = {}) {
   class TableRenderer extends React.PureComponent {
     render() {
@@ -207,10 +320,100 @@ function makeRenderer(opts = {}) {
         ? this.props.tableOptions.conditionalFormatting
         : null;
 
+      // Get cell formatting from tableOptions
+      const cellFormatting = this.props.tableOptions && this.props.tableOptions.cellFormatting
+        ? this.props.tableOptions.cellFormatting
+        : null;
+
+      // Create lookup map from aggregationKey to aggregatorName
+      const aggregationNameLookup = {};
+      aggregations.forEach(agg => {
+        aggregationNameLookup[agg.key] = agg.aggregatorName;
+      });
+
       // Helper function to get cell style with conditional formatting
       const getCellStyle = (value, heatmapStyle = {}) => {
         const conditionalStyle = getConditionalFormattingStyle(value, conditionalFormatting);
         return mergeStyles(heatmapStyle, conditionalStyle);
+      };
+
+      // Helper function to format cell value with cell formatting rules
+      const formatCellValue = (value, aggregator, aggregationKey) => {
+
+        const aggregatorName = aggregationKey ? aggregationNameLookup[aggregationKey] : null;
+
+        return applyCellFormatting(
+          value,
+          cellFormatting,
+          aggregator.format.bind(aggregator),
+          aggregatorName
+        );
+      };
+
+      // Helper function to format label text if it's numeric
+      // Used for both row and column labels
+      const formatLabel = (txt) => {
+        // Check if txt is numeric (number or numeric string)
+        // Also exclude 'null' string which is used for missing values
+        if (txt === 'null' || txt === null || typeof txt === 'undefined') {
+          return txt;
+        }
+
+        // Don't format if it contains special characters (dates, formatted strings, etc.)
+        if (containsSpecialCharacters(txt)) {
+          return txt;
+        }
+
+        // Check if txt is numeric (number or numeric string)
+        // A string is numeric if it can be parsed as a finite number
+        // Exclude strings with special characters from formatting
+        let isNumeric = false;
+        let numericValue = null;
+
+        if (typeof txt === 'number') {
+          isNumeric = !isNaN(txt) && isFinite(txt);
+          if (isNumeric) {
+            numericValue = txt;
+          }
+        } else if (typeof txt === 'string' && txt.trim() !== '' && txt !== 'null' && !containsSpecialCharacters(txt)) {
+          const parsed = parseFloat(txt.trim());
+          isNumeric = !isNaN(parsed) && isFinite(parsed);
+          if (isNumeric) {
+            numericValue = parsed;
+          }
+        }
+
+        if (isNumeric && numericValue !== null && cellFormatting && Array.isArray(cellFormatting.rules) && cellFormatting.rules.length > 0) {
+          const matchingRule = cellFormatting.rules[0];
+          if (matchingRule && matchingRule.format) {
+            const format = matchingRule.format;
+            const formatter = numberFormat({
+              digitsAfterDecimal: ('decimalPlaces' in format) ? format.decimalPlaces : 2,
+              thousandsSep: ('thousandsSep' in format) ? format.thousandsSep : ',',
+              decimalSep: ('decimalSep' in format) ? format.decimalSep : '.',
+              prefix: ('prefix' in format) ? format.prefix : '',
+              suffix: ('suffix' in format) ? format.suffix : '',
+            });
+            return formatter(numericValue);
+          }
+        }
+
+        // Not numeric or no formatting rules, return as-is
+        return txt;
+      };
+
+      // Helper function to format row label text if it's numeric
+      // Only formats if it's a numeric value, not aggregation labels
+      const formatRowLabel = (txt, index, isLastElement, hasMultipleAggregators, rowAttrsLength) => {
+        // Don't format the last element if it's an aggregation label (when multiple aggregators)
+        // The last element is an aggregation label only if:
+        // 1. There are multiple aggregators
+        // 2. AND it's beyond the row attributes (index >= rowAttrsLength)
+        if (hasMultipleAggregators && isLastElement && index >= rowAttrsLength) {
+          return txt;
+        }
+
+        return formatLabel(txt);
       };
 
       const getClickHandler =
@@ -312,6 +515,7 @@ function makeRenderer(opts = {}) {
                     if (x === -1) {
                       return null;
                     }
+                    const formattedColLabel = formatLabel(colKey[j]);
                     return (
                       <th
                         className="pvtColLabel"
@@ -324,7 +528,7 @@ function makeRenderer(opts = {}) {
                             : 1
                         }
                       >
-                        {colKey[j]}
+                        {formattedColLabel}
                       </th>
                     );
                   })}
@@ -378,6 +582,8 @@ function makeRenderer(opts = {}) {
                     if (x === -1) {
                       return null;
                     }
+                    const isLastElement = j === displayKey.length - 1;
+                    const formattedTxt = formatRowLabel(txt, j, isLastElement, hasMultipleAggregators, rowAttrs.length);
                     return (
                       <th
                         key={`rowKeyLabel${i}-${j}`}
@@ -390,7 +596,7 @@ function makeRenderer(opts = {}) {
                             : 1
                         }
                       >
-                        {txt}
+                        {formattedTxt}
                       </th>
                     );
                   })}
@@ -416,7 +622,7 @@ function makeRenderer(opts = {}) {
                         }
                         style={getCellStyle(value, heatmapStyle)}
                       >
-                        {aggregator.format(value)}
+                        {formatCellValue(value, aggregator, rowMeta.aggregationKey)}
                       </td>
                     );
                   })}
@@ -435,7 +641,7 @@ function makeRenderer(opts = {}) {
                       colTotalColors(totalAggregator.value()) || {}
                     )}
                   >
-                    {totalAggregator.format(totalAggregator.value())}
+                    {formatCellValue(totalAggregator.value(), totalAggregator, rowMeta.aggregationKey)}
                   </td>
                 </tr>
               );
@@ -487,7 +693,7 @@ function makeRenderer(opts = {}) {
                             rowTotalColors(totalValue) || {}
                           )}
                         >
-                          {totalAggregator.format(totalValue)}
+                          {formatCellValue(totalValue, totalAggregator, agg.key)}
                         </td>
                       );
                     })}
@@ -504,9 +710,7 @@ function makeRenderer(opts = {}) {
                       className="pvtGrandTotal"
                       style={getCellStyle(grandTotalAggregator.value(), {})}
                     >
-                      {grandTotalAggregator.format(
-                        grandTotalAggregator.value()
-                      )}
+                      {formatCellValue(grandTotalAggregator.value(), grandTotalAggregator, agg.key)}
                     </td>
                   </tr>
                 );

@@ -121,6 +121,22 @@ export default class App extends React.Component {
                                 }
                             }
                         ]
+                    },
+                    // Cell formatting example - format all numeric values
+                    cellFormatting: {
+                        rules: [
+                            {
+                                format: {
+                                    thousandsSep: ',',      // Thousand separator (e.g., 1,000)
+                                    decimalSep: '.',        // Decimal separator (e.g., 1.23)
+                                    decimalPlaces: 2,       // Number of decimal places (0-9)
+                                    prefix: '',            // Prefix (e.g., $, €, ¥)
+                                    suffix: ''              // Suffix (e.g., %, units)
+                                }
+                            }
+                            // You can add multiple rules, but only the first one will be used
+                            // (all rules apply to all values)
+                        ]
                     }
                 },
             },

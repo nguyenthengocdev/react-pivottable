@@ -547,6 +547,274 @@ ConditionalFormattingUI.defaultProps = {
   zIndex: 1,
 };
 
+export class CellFormattingUI extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      open: false,
+    };
+  }
+
+  getCellFormatting() {
+    const tableOptions = this.props.tableOptions || {};
+    return tableOptions.cellFormatting
+      ? tableOptions.cellFormatting
+      : { rules: [] };
+  }
+
+  updateCellFormatting(cellFormatting) {
+    const currentTableOptions = this.props.tableOptions || {};
+    const tableOptions = Object.assign({}, currentTableOptions, {
+      cellFormatting,
+    });
+    this.props.onChange({
+      tableOptions: { $set: tableOptions },
+    });
+  }
+
+  addRule() {
+    const cf = this.getCellFormatting();
+    const newRule = {
+      format: {
+        thousandsSep: ',',
+        decimalSep: '.',
+        decimalPlaces: 2,
+        prefix: '',
+        suffix: '',
+      },
+    };
+    this.updateCellFormatting({
+      rules: cf.rules.slice().concat([newRule]),
+    });
+  }
+
+  removeRule(index) {
+    const cf = this.getCellFormatting();
+    const newRules = cf.rules.filter((_, i) => i !== index);
+    this.updateCellFormatting({
+      rules: newRules,
+    });
+  }
+
+  updateRule(index, field, value) {
+    const cf = this.getCellFormatting();
+    const newRules = cf.rules.slice();
+    if (field.startsWith('format.')) {
+      const formatField = field.replace('format.', '');
+      const newFormat = Object.assign({}, newRules[index].format || {});
+      if (value === null || value === '') {
+        delete newFormat[formatField];
+      } else {
+        newFormat[formatField] = value;
+      }
+      newRules[index] = Object.assign({}, newRules[index], {
+        format: newFormat,
+      });
+    } else {
+      newRules[index] = Object.assign({}, newRules[index], {
+        [field]: value,
+      });
+    }
+    this.updateCellFormatting({
+      rules: newRules,
+    });
+  }
+
+  toggle() {
+    this.setState({ open: !this.state.open });
+    if (this.props.moveToTop) {
+      this.props.moveToTop();
+    }
+  }
+
+  render() {
+    const cf = this.getCellFormatting();
+
+    return (
+      <div>
+        <button
+          type="button"
+          className="pvtButton"
+          onClick={e => {
+            e.stopPropagation();
+            this.toggle();
+          }}
+          style={{ marginTop: '5px' }}
+        >
+          {this.state.open ? '▼' : '▶'} Cell Formatting
+        </button>
+
+        {this.state.open && (
+          <div
+            className="pvtFilterBox"
+            style={{
+              display: 'block',
+              cursor: 'initial',
+              zIndex: this.props.zIndex,
+              marginTop: '5px',
+              minWidth: '400px',
+              position: 'relative',
+            }}
+            onClick={() => this.props.moveToTop && this.props.moveToTop()}
+          >
+            <a
+              onClick={() => this.setState({ open: false })}
+              className="pvtCloseX"
+            >
+              ×
+            </a>
+            <h4>Cell Formatting Rules</h4>
+
+            {cf.rules.length === 0 && (
+              <p style={{ fontStyle: 'italic', color: '#666' }}>
+                No rules defined. Add a rule to format cell values.
+              </p>
+            )}
+
+            {cf.rules.map((rule, index) => (
+              <div
+                key={index}
+                style={{
+                  border: '1px solid #c8d4e3',
+                  padding: '10px',
+                  marginBottom: '10px',
+                  backgroundColor: '#f9f9f9',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <strong>Rule {index + 1}</strong>
+                  <button
+                    type="button"
+                    className="pvtButton"
+                    onClick={e => {
+                      e.stopPropagation();
+                      this.removeRule(index);
+                    }}
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Thousand Separator:
+                  </label>
+                  <input
+                    type="text"
+                    value={(rule.format && 'thousandsSep' in rule.format) ? rule.format.thousandsSep : ','}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'format.thousandsSep', e.target.value);
+                    }}
+                    placeholder=","
+                    maxLength="1"
+                    style={{ width: '100%', padding: '4px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Decimal Separator:
+                  </label>
+                  <input
+                    type="text"
+                    value={(rule.format && 'decimalSep' in rule.format) ? rule.format.decimalSep : '.'}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'format.decimalSep', e.target.value);
+                    }}
+                    placeholder="."
+                    maxLength="1"
+                    style={{ width: '100%', padding: '4px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Decimal Places:
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="9"
+                    value={(rule.format && 'decimalPlaces' in rule.format) ? rule.format.decimalPlaces : 2}
+                    onChange={e => {
+                      e.stopPropagation();
+                      const val = parseInt(e.target.value, 10);
+                      this.updateRule(index, 'format.decimalPlaces', isNaN(val) ? 2 : val);
+                    }}
+                    placeholder="2"
+                    style={{ width: '100%', padding: '4px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Prefix (e.g., $, €):
+                  </label>
+                  <input
+                    type="text"
+                    value={(rule.format && 'prefix' in rule.format) ? rule.format.prefix : ''}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'format.prefix', e.target.value);
+                    }}
+                    placeholder=""
+                    style={{ width: '100%', padding: '4px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Suffix (e.g., %, units):
+                  </label>
+                  <input
+                    type="text"
+                    value={(rule.format && 'suffix' in rule.format) ? rule.format.suffix : ''}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'format.suffix', e.target.value);
+                    }}
+                    placeholder=""
+                    style={{ width: '100%', padding: '4px' }}
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="pvtButton"
+              onClick={e => {
+                e.stopPropagation();
+                this.addRule();
+              }}
+              style={{ width: '100%', marginTop: '10px' }}
+            >
+              + Add Rule
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+}
+
+CellFormattingUI.propTypes = {
+  tableOptions: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  moveToTop: PropTypes.func,
+  zIndex: PropTypes.number,
+};
+
+CellFormattingUI.defaultProps = {
+  tableOptions: {},
+  moveToTop: () => { },
+  zIndex: 1,
+};
+
 class PivotTableUI extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -1011,6 +1279,12 @@ class PivotTableUI extends React.PureComponent {
           onChange={this.sendPropUpdate.bind(this)}
           moveToTop={this.moveFilterBoxToTop.bind(this, 'conditionalFormatting')}
           zIndex={this.state.zIndices.conditionalFormatting || this.state.maxZIndex}
+        />
+        <CellFormattingUI
+          tableOptions={this.props.tableOptions}
+          onChange={this.sendPropUpdate.bind(this)}
+          moveToTop={this.moveFilterBoxToTop.bind(this, 'cellFormatting')}
+          zIndex={this.state.zIndices.cellFormatting || this.state.maxZIndex}
         />
       </td>
     );
