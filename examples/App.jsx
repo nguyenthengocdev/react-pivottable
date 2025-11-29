@@ -21,8 +21,6 @@ class PivotTableUISmartWrapper extends React.PureComponent {
     }
 
     render() {
-        console.log("state:::", this.state.pivotState);
-        
         return (
             <PivotTableUI
                 renderers={Object.assign(
@@ -48,9 +46,8 @@ export default class App extends React.Component {
                 rows: [],
                 cols: [],
                 aggregatorName: 'Count',
-                aggregatorNames: [],
-                aggregations: [],
                 vals: [],
+                aggregations: [],
                 rendererName: 'Table',
                 sorters: {},
                 plotlyOptions: {width: 900, height: 500},

@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 
-const addSeparators = function(nStr, thousandsSep, decimalSep) {
+const addSeparators = function (nStr, thousandsSep, decimalSep) {
   const x = String(nStr).split('.');
   let x1 = x[0];
   const x2 = x.length > 1 ? decimalSep + x[1] : '';
@@ -23,7 +23,7 @@ const addSeparators = function(nStr, thousandsSep, decimalSep) {
   return x1 + x2;
 };
 
-const numberFormat = function(opts_in) {
+const numberFormat = function (opts_in) {
   const defaults = {
     digitsAfterDecimal: 2,
     scaler: 1,
@@ -33,7 +33,7 @@ const numberFormat = function(opts_in) {
     suffix: '',
   };
   const opts = Object.assign({}, defaults, opts_in);
-  return function(x) {
+  return function (x) {
     if (isNaN(x) || !isFinite(x)) {
       return '';
     }
@@ -121,7 +121,7 @@ const naturalSort = (as, bs) => {
   return a.length - b.length;
 };
 
-const sortAs = function(order) {
+const sortAs = function (order) {
   const mapping = {};
 
   // sort lowercased keys similarly
@@ -133,7 +133,7 @@ const sortAs = function(order) {
       l_mapping[x.toLowerCase()] = i;
     }
   }
-  return function(a, b) {
+  return function (a, b) {
     if (a in mapping && b in mapping) {
       return mapping[a] - mapping[b];
     } else if (a in mapping) {
@@ -151,7 +151,7 @@ const sortAs = function(order) {
   };
 };
 
-const getSort = function(sorters, attr) {
+const getSort = function (sorters, attr) {
   if (sorters) {
     if (typeof sorters === 'function') {
       const sort = sorters(attr);
@@ -167,7 +167,7 @@ const getSort = function(sorters, attr) {
 
 // aggregator templates default to US number formatting but this is overrideable
 const usFmt = numberFormat();
-const usFmtInt = numberFormat({digitsAfterDecimal: 0});
+const usFmtInt = numberFormat({ digitsAfterDecimal: 0 });
 const usFmtPct = numberFormat({
   digitsAfterDecimal: 1,
   scaler: 100,
@@ -177,7 +177,7 @@ const usFmtPct = numberFormat({
 const aggregatorTemplates = {
   count(formatter = usFmtInt) {
     return () =>
-      function() {
+      function () {
         return {
           count: 0,
           push() {
@@ -192,8 +192,8 @@ const aggregatorTemplates = {
   },
 
   uniques(fn, formatter = usFmtInt) {
-    return function([attr]) {
-      return function() {
+    return function ([attr]) {
+      return function () {
         return {
           uniq: [],
           push(record) {
@@ -212,8 +212,8 @@ const aggregatorTemplates = {
   },
 
   sum(formatter = usFmt) {
-    return function([attr]) {
-      return function() {
+    return function ([attr]) {
+      return function () {
         return {
           sum: 0,
           push(record) {
@@ -232,8 +232,8 @@ const aggregatorTemplates = {
   },
 
   extremes(mode, formatter = usFmt) {
-    return function([attr]) {
-      return function(data) {
+    return function ([attr]) {
+      return function (data) {
         return {
           val: null,
           sorter: getSort(
@@ -277,8 +277,8 @@ const aggregatorTemplates = {
   },
 
   quantile(q, formatter = usFmt) {
-    return function([attr]) {
-      return function() {
+    return function ([attr]) {
+      return function () {
         return {
           vals: [],
           push(record) {
@@ -303,8 +303,8 @@ const aggregatorTemplates = {
   },
 
   runningStat(mode = 'mean', ddof = 1, formatter = usFmt) {
-    return function([attr]) {
-      return function() {
+    return function ([attr]) {
+      return function () {
         return {
           n: 0.0,
           m: 0.0,
@@ -349,8 +349,8 @@ const aggregatorTemplates = {
   },
 
   sumOverSum(formatter = usFmt) {
-    return function([num, denom]) {
-      return function() {
+    return function ([num, denom]) {
+      return function () {
         return {
           sumNum: 0,
           sumDenom: 0,
@@ -375,9 +375,9 @@ const aggregatorTemplates = {
 
   fractionOf(wrapped, type = 'total', formatter = usFmtPct) {
     return (...x) =>
-      function(data, rowKey, colKey) {
+      function (data, rowKey, colKey) {
         return {
-          selector: {total: [[], []], row: [rowKey, []], col: [[], colKey]}[
+          selector: { total: [[], []], row: [rowKey, []], col: [[], colKey] }[
             type
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
@@ -516,12 +516,12 @@ const derivers = {
     dayNames = dayNamesEn
   ) {
     const utc = utcOutput ? 'UTC' : '';
-    return function(record) {
+    return function (record) {
       const date = new Date(Date.parse(record[col]));
       if (isNaN(date)) {
         return '';
       }
-      return formatString.replace(/%(.)/g, function(m, p) {
+      return formatString.replace(/%(.)/g, function (m, p) {
         switch (p) {
           case 'y':
             return date[`get${utc}FullYear`]();
@@ -634,7 +634,7 @@ class PivotData {
       }
       return result;
     })();
-    return function(a, b) {
+    return function (a, b) {
       for (const i of Object.keys(sortersArr || {})) {
         const sorter = sortersArr[i];
         const comparison = sorter(a[i], b[i]);
@@ -779,51 +779,53 @@ class PivotData {
     return Object.assign({}, this.primaryAggregation);
   }
 
-  getActiveAggregatorNames() {
-    const list = Array.isArray(this.props.aggregatorNames)
-      ? this.props.aggregatorNames.slice()
-      : [];
-    if (!list.includes(this.props.aggregatorName)) {
-      list.unshift(this.props.aggregatorName);
-    }
-    const unique = [];
-    list.forEach(name => {
-      if (name && !unique.includes(name)) {
-        unique.push(name);
-      }
-    });
-    return unique.length ? unique : [this.props.aggregatorName];
-  }
-
   normalizeAggregations() {
-    let aggregations = [];
-    if (
+    const defaultAggregatorName = Object.keys(this.props.aggregators)[0];
+    const aggregationsProvided =
       Array.isArray(this.props.aggregations) &&
-      this.props.aggregations.length
-    ) {
+      this.props.aggregations.length > 0;
+    const legacyAggregatorName =
+      typeof this.props.aggregatorName === 'string'
+        ? this.props.aggregatorName
+        : null;
+    const fallbackAggregatorName =
+      legacyAggregatorName || defaultAggregatorName;
+    const fallbackVals = Array.isArray(this.props.vals) ? this.props.vals : [];
+    let aggregations = [];
+    if (aggregationsProvided) {
       aggregations = this.props.aggregations;
     } else {
-      const names = this.getActiveAggregatorNames();
-      aggregations = names.map(name => ({
-        aggregatorName: name,
-        vals: this.props.vals,
-      }));
+      aggregations = [
+        {
+          aggregatorName: fallbackAggregatorName,
+          vals: fallbackVals,
+        },
+      ];
     }
     return aggregations.map((agg, idx) => {
-      const aggregatorName = agg.aggregatorName || this.props.aggregatorName;
-      const vals = typeof agg.vals !== 'undefined' ? agg.vals : this.props.vals;
+      const aggregatorName =
+        agg.aggregatorName ||
+        (aggregationsProvided ? defaultAggregatorName : fallbackAggregatorName);
+      const vals =
+        typeof agg.vals !== 'undefined'
+          ? agg.vals
+          : aggregationsProvided
+            ? []
+            : fallbackVals.slice();
+      const normalizedVals = Array.isArray(vals) ? vals : [];
       const key =
         agg.key ||
-        `${aggregatorName || 'agg'}-${vals ? vals.join('|') : ''}-${idx}`;
+        `${aggregatorName || 'agg'}-${normalizedVals.length ? normalizedVals.join('|') : ''
+        }-${idx}`;
       const label =
         agg.label ||
-        (vals && vals.length
-          ? `${aggregatorName} of ${vals.join(', ')}`
+        (normalizedVals.length
+          ? `${aggregatorName} of ${normalizedVals.join(', ')}`
           : aggregatorName);
       return {
         key,
         aggregatorName,
-        vals,
+        vals: normalizedVals,
         label,
       };
     });
@@ -854,7 +856,7 @@ class PivotData {
 }
 
 PivotData.emptyAggregator = {
-  push() {},
+  push() { },
   value() {
     return null;
   },
@@ -864,12 +866,12 @@ PivotData.emptyAggregator = {
 };
 
 // can handle arrays or jQuery selections of tables
-PivotData.forEachRecord = function(input, derivedAttributes, f) {
+PivotData.forEachRecord = function (input, derivedAttributes, f) {
   let addRecord, record;
   if (Object.getOwnPropertyNames(derivedAttributes).length === 0) {
     addRecord = f;
   } else {
-    addRecord = function(record) {
+    addRecord = function (record) {
       for (const k in derivedAttributes) {
         const derived = derivedAttributes[k](record);
         if (derived !== null) {
@@ -920,8 +922,7 @@ PivotData.defaultProps = {
   cols: [],
   rows: [],
   vals: [],
-  aggregatorName: 'Count',
-  aggregatorNames: [],
+  aggregatorName: Object.keys(aggregators)[0],
   aggregations: [],
   sorters: {},
   valueFilter: {},
@@ -934,7 +935,6 @@ PivotData.propTypes = {
   data: PropTypes.oneOfType([PropTypes.array, PropTypes.object, PropTypes.func])
     .isRequired,
   aggregatorName: PropTypes.string,
-  aggregatorNames: PropTypes.arrayOf(PropTypes.string),
   aggregations: PropTypes.arrayOf(
     PropTypes.shape({
       key: PropTypes.string,

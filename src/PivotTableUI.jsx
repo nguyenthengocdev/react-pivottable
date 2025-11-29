@@ -249,7 +249,6 @@ class PivotTableUI extends React.PureComponent {
   }
 
   componentDidUpdate() {
-    console.log("this.props:::",this.props);
     this.materializeInput(this.props.data);
   }
 
@@ -297,23 +296,40 @@ class PivotTableUI extends React.PureComponent {
     return value => this.sendPropUpdate({[key]: {$set: value}});
   }
 
+  hasExternalAggregations() {
+    return (
+      Array.isArray(this.props.aggregations)
+    );
+  }
+
   getCurrentAggregations() {
-    const source =
-      Array.isArray(this.props.aggregations) &&
-      this.props.aggregations.length > 0
-        ? this.props.aggregations
-        : [
-            
-          ];
     const fallbackAggregator =
       this.props.aggregatorName || Object.keys(this.props.aggregators)[0];
+    const fallbackVals = Array.isArray(this.props.vals)
+      ? this.props.vals.slice()
+      : [];
+    const aggregationsProvided =  this.hasExternalAggregations();
+    const defaultAggregations = [
+      {
+        key: 'agg-default',
+        aggregatorName: fallbackAggregator,
+        vals: fallbackVals,
+      },
+    ];
+    const source = aggregationsProvided
+      ? this.props.aggregations
+      : defaultAggregations;
     return source.map((agg, idx) => {
       const aggregatorName = agg.aggregatorName || fallbackAggregator;
-      const vals = Array.isArray(agg.vals) ? agg.vals.slice() : [];
+      const baseVals = Array.isArray(agg.vals)
+        ? agg.vals.slice()
+        : aggregationsProvided
+        ? []
+        : fallbackVals;
       return {
         key: agg.key || `agg-${idx}`,
         aggregatorName,
-        vals: this.defaultValsForAggregator(aggregatorName, vals),
+        vals: this.defaultValsForAggregator(aggregatorName, baseVals),
       };
     });
   }
@@ -361,26 +377,28 @@ class PivotTableUI extends React.PureComponent {
     if (!nextAggregations.length) {
       return;
     }
-    const sanitized = nextAggregations.map((agg, idx) => ({
-      key: agg.key || `agg-${idx}`,
-      aggregatorName:
-        agg.aggregatorName ||
-        this.props.aggregatorName ||
-        Object.keys(this.props.aggregators)[0],
-      vals: this.defaultValsForAggregator(
-        agg.aggregatorName ||
-          this.props.aggregatorName ||
-          Object.keys(this.props.aggregators)[0],
-        Array.isArray(agg.vals) ? agg.vals.slice() : []
-      ),
-    }));
-    const primary = sanitized[0];
-    this.sendPropUpdate({
-      aggregations: {$set: sanitized},
-      aggregatorName: {$set: primary.aggregatorName},
-      aggregatorNames: {$set: sanitized.map(a => a.aggregatorName)},
-      vals: {$set: primary.vals},
+    const fallbackAggregator =
+      this.props.aggregatorName || Object.keys(this.props.aggregators)[0];
+    const sanitized = nextAggregations.map((agg, idx) => {
+      const aggregatorName = agg.aggregatorName || fallbackAggregator;
+      return {
+        key: agg.key || `agg-${idx}`,
+        aggregatorName,
+        vals: this.defaultValsForAggregator(
+          aggregatorName,
+          Array.isArray(agg.vals) ? agg.vals.slice() : []
+        ),
+      };
     });
+    const primary = sanitized[0];
+    const command = {
+      aggregations: {$set: sanitized},
+    };
+    if (!this.hasExternalAggregations()) {
+      command.aggregatorName = {$set: primary.aggregatorName};
+      command.vals = {$set: primary.vals};
+    }
+    this.sendPropUpdate(command);
   }
 
   setAggregationAggregator(index, aggregatorName) {

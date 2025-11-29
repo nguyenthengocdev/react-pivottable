@@ -25,12 +25,19 @@ function makeRenderer(
         datumKeys.push([]);
       }
 
-      let fullAggName = this.props.aggregatorName;
-      const numInputs =
-        this.props.aggregators[fullAggName]([])().numInputs || 0;
-      if (numInputs !== 0) {
-        fullAggName += ` of ${this.props.vals.slice(0, numInputs).join(', ')}`;
-      }
+      const primaryAggregation = pivotData.getPrimaryAggregation();
+      const fallbackAggregator =
+        Object.keys(this.props.aggregators)[0] || 'Value';
+      const aggregatorName =
+        (primaryAggregation && primaryAggregation.aggregatorName) ||
+        fallbackAggregator;
+      const aggregationVals =
+        (primaryAggregation && primaryAggregation.vals) || [];
+      const fullAggName =
+        (primaryAggregation && primaryAggregation.label) ||
+        (aggregationVals.length
+          ? `${aggregatorName} of ${aggregationVals.join(', ')}`
+          : aggregatorName);
 
       const data = traceKeys.map(traceKey => {
         const values = [];

@@ -411,7 +411,7 @@ class TSVExportRenderer extends React.PureComponent {
       headerRow.push(
         hasMultipleAggregators
           ? 'Value'
-          : aggregations[0].label || this.props.aggregatorName
+          : aggregations[0].label || aggregations[0].aggregatorName
       );
     } else {
       safeColKeys.map(c => headerRow.push(c.join('-')));
