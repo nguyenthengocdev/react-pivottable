@@ -84,6 +84,44 @@ export default class App extends React.Component {
                             names.push(record.Meal);
                         });
                     },
+                    // Conditional formatting example
+                    conditionalFormatting: {
+                        rules: [
+                            // Highlight values greater than 20 with green background
+                            {
+                                condition: {
+                                    type: 'greaterThan',
+                                    value: 20
+                                },
+                                style: {
+                                    backgroundColor: '#90EE90',
+                                    fontWeight: 'bold'
+                                }
+                            },
+                            // Highlight values less than 5 with red background
+                            {
+                                condition: {
+                                    type: 'lessThan',
+                                    value: 5
+                                },
+                                style: {
+                                    backgroundColor: '#FFB6C1',
+                                    color: '#8B0000',
+                                    fontWeight: 'bold'
+                                }
+                            },
+                            // Highlight empty values with yellow background
+                            {
+                                condition: {
+                                    type: 'empty'
+                                },
+                                style: {
+                                    backgroundColor: '#FFFFE0',
+                                    fontStyle: 'italic'
+                                }
+                            }
+                        ]
+                    }
                 },
             },
         });

@@ -231,6 +231,322 @@ export class Dropdown extends React.PureComponent {
   }
 }
 
+export class ConditionalFormattingUI extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      open: false,
+    };
+  }
+
+  getConditionalFormatting() {
+    const tableOptions = this.props.tableOptions || {};
+    return tableOptions.conditionalFormatting
+      ? tableOptions.conditionalFormatting
+      : { rules: [] };
+  }
+
+  updateConditionalFormatting(conditionalFormatting) {
+    const currentTableOptions = this.props.tableOptions || {};
+    const tableOptions = Object.assign({}, currentTableOptions, {
+      conditionalFormatting,
+    });
+    this.props.onChange({
+      tableOptions: { $set: tableOptions },
+    });
+  }
+
+  addRule() {
+    const cf = this.getConditionalFormatting();
+    const newRule = {
+      condition: {
+        type: 'greaterThan',
+        value: 0,
+      },
+      style: {
+        backgroundColor: '#FFFFE0',
+      },
+    };
+    this.updateConditionalFormatting({
+      rules: cf.rules.slice().concat([newRule]),
+    });
+  }
+
+  removeRule(index) {
+    const cf = this.getConditionalFormatting();
+    const newRules = cf.rules.filter((_, i) => i !== index);
+    this.updateConditionalFormatting({
+      rules: newRules,
+    });
+  }
+
+  updateRule(index, field, value) {
+    const cf = this.getConditionalFormatting();
+    const newRules = cf.rules.slice();
+    if (field.startsWith('condition.')) {
+      const conditionField = field.replace('condition.', '');
+      const newCondition = Object.assign({}, newRules[index].condition);
+      if (value === null) {
+        delete newCondition[conditionField];
+      } else {
+        newCondition[conditionField] = value;
+      }
+      newRules[index] = Object.assign({}, newRules[index], {
+        condition: newCondition,
+      });
+    } else if (field.startsWith('style.')) {
+      const styleField = field.replace('style.', '');
+      const newStyle = Object.assign({}, newRules[index].style || {});
+      if (value === null || value === '') {
+        delete newStyle[styleField];
+      } else {
+        newStyle[styleField] = value;
+      }
+      newRules[index] = Object.assign({}, newRules[index], {
+        style: newStyle,
+      });
+    }
+    this.updateConditionalFormatting({
+      rules: newRules,
+    });
+  }
+
+  toggle() {
+    this.setState({ open: !this.state.open });
+    if (this.props.moveToTop) {
+      this.props.moveToTop();
+    }
+  }
+
+  render() {
+    const cf = this.getConditionalFormatting();
+    const conditionTypes = [
+      { value: 'greaterThan', label: 'Greater Than' },
+      { value: 'lessThan', label: 'Less Than' },
+      { value: 'greaterThanOrEqual', label: 'Greater Than Or Equal' },
+      { value: 'lessThanOrEqual', label: 'Less Than Or Equal' },
+      { value: 'equal', label: 'Equal' },
+      { value: 'notEqual', label: 'Not Equal' },
+      { value: 'empty', label: 'Empty' },
+      { value: 'notEmpty', label: 'Not Empty' },
+      { value: 'contains', label: 'Contains' },
+      { value: 'notContains', label: 'Not Contains' },
+    ];
+
+    const needsValue = (type) => {
+      return !['empty', 'notEmpty'].includes(type);
+    };
+
+    return (
+      <div>
+        <button
+          type="button"
+          className="pvtButton"
+          onClick={e => {
+            e.stopPropagation();
+            this.toggle();
+          }}
+          style={{ marginTop: '5px' }}
+        >
+          {this.state.open ? '▼' : '▶'} Conditional Formatting
+        </button>
+
+        {this.state.open && (
+          <div
+            className="pvtFilterBox"
+            style={{
+              display: 'block',
+              cursor: 'initial',
+              zIndex: this.props.zIndex,
+              marginTop: '5px',
+              minWidth: '400px',
+              position: 'relative',
+            }}
+            onClick={() => this.props.moveToTop && this.props.moveToTop()}
+          >
+            <a
+              onClick={() => this.setState({ open: false })}
+              className="pvtCloseX"
+            >
+              ×
+            </a>
+            <h4>Conditional Formatting Rules</h4>
+
+            {cf.rules.length === 0 && (
+              <p style={{ fontStyle: 'italic', color: '#666' }}>
+                No rules defined. Add a rule to format cells based on conditions.
+              </p>
+            )}
+
+            {cf.rules.map((rule, index) => (
+              <div
+                key={index}
+                style={{
+                  border: '1px solid #c8d4e3',
+                  padding: '10px',
+                  marginBottom: '10px',
+                  backgroundColor: '#f9f9f9',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <strong>Rule {index + 1}</strong>
+                  <button
+                    type="button"
+                    className="pvtButton"
+                    onClick={e => {
+                      e.stopPropagation();
+                      this.removeRule(index);
+                    }}
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Condition Type:
+                  </label>
+                  <select
+                    value={rule.condition.type || 'greaterThan'}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'condition.type', e.target.value);
+                      // Reset value if condition type doesn't need it
+                      if (!needsValue(e.target.value)) {
+                        this.updateRule(index, 'condition.value', null);
+                      }
+                    }}
+                    style={{ width: '100%', padding: '4px' }}
+                  >
+                    {conditionTypes.map(ct => (
+                      <option key={ct.value} value={ct.value}>
+                        {ct.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {needsValue(rule.condition.type) && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                      Condition Value:
+                    </label>
+                    <input
+                      type="text"
+                      value={typeof rule.condition.value !== 'undefined' && rule.condition.value !== null ? rule.condition.value : ''}
+                      onChange={e => {
+                        e.stopPropagation();
+                        const val = e.target.value;
+                        // Try to parse as number, otherwise use as string
+                        const numVal = val === '' ? null : (isNaN(val) ? val : parseFloat(val));
+                        this.updateRule(index, 'condition.value', numVal);
+                      }}
+                      placeholder="Enter value"
+                      style={{ width: '100%', padding: '4px' }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Background Color:
+                  </label>
+                  <input
+                    type="color"
+                    value={rule.style && rule.style.backgroundColor ? rule.style.backgroundColor : '#FFFFFF'}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'style.backgroundColor', e.target.value);
+                    }}
+                    style={{ width: '100%', padding: '2px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Text Color:
+                  </label>
+                  <input
+                    type="color"
+                    value={rule.style && rule.style.color ? rule.style.color : '#000000'}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'style.color', e.target.value);
+                    }}
+                    style={{ width: '100%', padding: '2px' }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Font Weight:
+                  </label>
+                  <select
+                    value={rule.style && rule.style.fontWeight ? rule.style.fontWeight : ''}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'style.fontWeight', e.target.value || null);
+                    }}
+                    style={{ width: '100%', padding: '4px' }}
+                  >
+                    <option value="">Normal</option>
+                    <option value="bold">Bold</option>
+                    <option value="lighter">Lighter</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '8px' }}>
+                  <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px' }}>
+                    Font Style:
+                  </label>
+                  <select
+                    value={rule.style && rule.style.fontStyle ? rule.style.fontStyle : ''}
+                    onChange={e => {
+                      e.stopPropagation();
+                      this.updateRule(index, 'style.fontStyle', e.target.value || null);
+                    }}
+                    style={{ width: '100%', padding: '4px' }}
+                  >
+                    <option value="">Normal</option>
+                    <option value="italic">Italic</option>
+                    <option value="oblique">Oblique</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              className="pvtButton"
+              onClick={e => {
+                e.stopPropagation();
+                this.addRule();
+              }}
+              style={{ width: '100%', marginTop: '10px' }}
+            >
+              + Add Rule
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+}
+
+ConditionalFormattingUI.propTypes = {
+  tableOptions: PropTypes.object,
+  onChange: PropTypes.func.isRequired,
+  moveToTop: PropTypes.func,
+  zIndex: PropTypes.number,
+};
+
+ConditionalFormattingUI.defaultProps = {
+  tableOptions: {},
+  moveToTop: () => { },
+  zIndex: 1,
+};
+
 class PivotTableUI extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -690,6 +1006,12 @@ class PivotTableUI extends React.PureComponent {
           {sortIcons[this.props.colOrder].colSymbol}
         </a>
         {aggregatorCellOutlet && aggregatorCellOutlet(this.props.data)}
+        <ConditionalFormattingUI
+          tableOptions={this.props.tableOptions}
+          onChange={this.sendPropUpdate.bind(this)}
+          moveToTop={this.moveFilterBoxToTop.bind(this, 'conditionalFormatting')}
+          zIndex={this.state.zIndices.conditionalFormatting || this.state.maxZIndex}
+        />
       </td>
     );
 

@@ -52,6 +52,76 @@ function redColorScaleGenerator(values) {
   };
 }
 
+// Conditional formatting evaluation function
+function evaluateCondition(value, condition) {
+  if (!condition || !condition.type) {
+    return false;
+  }
+
+  const { type, value: conditionValue } = condition;
+  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  const numConditionValue = typeof conditionValue === 'number' ? conditionValue : parseFloat(conditionValue);
+
+  switch (type) {
+    case 'greaterThan':
+      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue > numConditionValue;
+    case 'lessThan':
+      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue < numConditionValue;
+    case 'greaterThanOrEqual':
+      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue >= numConditionValue;
+    case 'lessThanOrEqual':
+      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue <= numConditionValue;
+    case 'equal':
+      if (typeof value === 'string' && typeof conditionValue === 'string') {
+        return value === conditionValue;
+      }
+      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue === numConditionValue;
+    case 'notEqual':
+      if (typeof value === 'string' && typeof conditionValue === 'string') {
+        return value !== conditionValue;
+      }
+      return isNaN(numValue) || isNaN(numConditionValue) || numValue !== numConditionValue;
+    case 'empty':
+      return value === null || typeof value === 'undefined' || value === '' || (typeof value === 'number' && isNaN(value));
+    case 'notEmpty':
+      return value !== null && typeof value !== 'undefined' && value !== '' && !(typeof value === 'number' && isNaN(value));
+    case 'contains':
+      if (typeof value === 'string' && typeof conditionValue === 'string') {
+        return value.toLowerCase().includes(conditionValue.toLowerCase());
+      }
+      return false;
+    case 'notContains':
+      if (typeof value === 'string' && typeof conditionValue === 'string') {
+        return !value.toLowerCase().includes(conditionValue.toLowerCase());
+      }
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Apply conditional formatting rules to a value
+function getConditionalFormattingStyle(value, conditionalFormatting) {
+  if (!conditionalFormatting || !Array.isArray(conditionalFormatting.rules)) {
+    return {};
+  }
+
+  // Evaluate rules in order, return first matching rule's style
+  for (const rule of conditionalFormatting.rules) {
+    if (evaluateCondition(value, rule.condition)) {
+      // Return a copy of the style object to avoid mutations
+      return rule.style ? Object.assign({}, rule.style) : {};
+    }
+  }
+
+  return {};
+}
+
+// Merge styles, with conditional formatting taking precedence
+function mergeStyles(...styles) {
+  return Object.assign({}, ...styles.filter(s => s && typeof s === 'object'));
+}
+
 function makeRenderer(opts = {}) {
   class TableRenderer extends React.PureComponent {
     render() {
@@ -131,6 +201,17 @@ function makeRenderer(opts = {}) {
           valueCellColors = (r, c, v) => colColorScales[c](v);
         }
       }
+
+      // Get conditional formatting from tableOptions
+      const conditionalFormatting = this.props.tableOptions && this.props.tableOptions.conditionalFormatting
+        ? this.props.tableOptions.conditionalFormatting
+        : null;
+
+      // Helper function to get cell style with conditional formatting
+      const getCellStyle = (value, heatmapStyle = {}) => {
+        const conditionalStyle = getConditionalFormattingStyle(value, conditionalFormatting);
+        return mergeStyles(heatmapStyle, conditionalStyle);
+      };
 
       const getClickHandler =
         this.props.tableOptions && this.props.tableOptions.clickCallback
@@ -320,6 +401,11 @@ function makeRenderer(opts = {}) {
                       rowMeta.aggregationKey
                     );
                     const value = aggregator.value();
+                    const heatmapStyle = valueCellColors(
+                      rowMeta.actualKey,
+                      colKey,
+                      value
+                    ) || {};
                     return (
                       <td
                         className="pvtVal"
@@ -328,11 +414,7 @@ function makeRenderer(opts = {}) {
                           getClickHandler &&
                           getClickHandler(value, rowMeta.actualKey, colKey)
                         }
-                        style={valueCellColors(
-                          rowMeta.actualKey,
-                          colKey,
-                          value
-                        )}
+                        style={getCellStyle(value, heatmapStyle)}
                       >
                         {aggregator.format(value)}
                       </td>
@@ -348,7 +430,10 @@ function makeRenderer(opts = {}) {
                         [null]
                       )
                     }
-                    style={colTotalColors(totalAggregator.value())}
+                    style={getCellStyle(
+                      totalAggregator.value(),
+                      colTotalColors(totalAggregator.value()) || {}
+                    )}
                   >
                     {totalAggregator.format(totalAggregator.value())}
                   </td>
@@ -384,6 +469,7 @@ function makeRenderer(opts = {}) {
                         colKey,
                         agg.key
                       );
+                      const totalValue = totalAggregator.value();
                       return (
                         <td
                           className="pvtTotal"
@@ -391,14 +477,17 @@ function makeRenderer(opts = {}) {
                           onClick={
                             getClickHandler &&
                             getClickHandler(
-                              totalAggregator.value(),
+                              totalValue,
                               [null],
                               colKey
                             )
                           }
-                          style={rowTotalColors(totalAggregator.value())}
+                          style={getCellStyle(
+                            totalValue,
+                            rowTotalColors(totalValue) || {}
+                          )}
                         >
-                          {totalAggregator.format(totalAggregator.value())}
+                          {totalAggregator.format(totalValue)}
                         </td>
                       );
                     })}
@@ -413,6 +502,7 @@ function makeRenderer(opts = {}) {
                         )
                       }
                       className="pvtGrandTotal"
+                      style={getCellStyle(grandTotalAggregator.value(), {})}
                     >
                       {grandTotalAggregator.format(
                         grandTotalAggregator.value()

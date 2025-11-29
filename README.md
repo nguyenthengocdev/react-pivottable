@@ -203,6 +203,9 @@ indication of which layer consumes each, from the bottom up:
 | `PivotTableUI` | `hiddenFromDragDrop` <br /> array of strings     | `[]`                          | contains attribute names to omit from the drag'n'drop portion of the UI                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `PivotTableUI` | `menuLimit` <br /> integer                       | 500                           | maximum number of values to list in the double-click menu                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `PivotTableUI` | `unusedOrientationCutoff` <br /> integer         | 85                            | If the attributes' names' combined length in characters exceeds this value then the unused attributes area will be shown vertically to the left of the UI instead of horizontally above it. `0` therefore means 'always vertical', and `Infinity` means 'always horizontal'.                                                                                                                                                                                                                                                                                                                                  |
+| `Renderer`     | `tableOptions` <br /> object                     | `{}`                          | object containing table renderer options including `clickCallback` function and `conditionalFormatting` configuration (see below)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `PivotTableUI` | `colSorts` <br /> object                         | `{}`                          | object whose keys are column attribute names and values are `'ASC'` or `'DESC'` to control column sorting direction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `PivotTableUI` | `rowSorts` <br /> object                         | `{}`                          | object whose keys are row attribute names and values are `'ASC'` or `'DESC'` to control row sorting direction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ### Working with multiple aggregators
 
@@ -219,6 +222,122 @@ const aggregations = [
 Pass that array via the `aggregations` prop (or add/remove them through the updated `PivotTableUI`). Each aggregation behaves like its own “value” in the table renderer, and you can mix and match as many as you like. Renderers that only support a single metric (e.g. the Plotly charts) continue to use the first aggregation as the primary one.
 
 If you want to read the value of a specific aggregation programmatically, call `pivotData.getAggregator(rowKey, colKey, aggregationKey)` where `aggregationKey` matches the `key` you provided (or the aggregator name if keys are omitted).
+
+### Conditional Formatting
+
+You can apply conditional formatting rules to cells in the table renderer. This allows you to highlight cells based on their values using custom styles.
+
+Conditional formatting is configured via the `tableOptions.conditionalFormatting` property. You can either set it programmatically or use the built-in UI in `PivotTableUI` (click the "Conditional Formatting" button in the aggregator area).
+
+#### Configuration
+
+```js
+tableOptions: {
+  conditionalFormatting: {
+    rules: [
+      {
+        condition: {
+          type: 'greaterThan',
+          value: 20
+        },
+        style: {
+          backgroundColor: '#90EE90',
+          color: '#000000',
+          fontWeight: 'bold',
+          fontStyle: 'normal'
+        }
+      },
+      {
+        condition: {
+          type: 'lessThan',
+          value: 5
+        },
+        style: {
+          backgroundColor: '#FFB6C1',
+          color: '#8B0000'
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Condition Types
+
+- `greaterThan` - Value is greater than the condition value
+- `lessThan` - Value is less than the condition value
+- `greaterThanOrEqual` - Value is greater than or equal to the condition value
+- `lessThanOrEqual` - Value is less than or equal to the condition value
+- `equal` - Value equals the condition value (works with numbers and strings)
+- `notEqual` - Value does not equal the condition value
+- `empty` - Value is empty, null, undefined, or NaN (does not require a condition value)
+- `notEmpty` - Value is not empty (does not require a condition value)
+- `contains` - String value contains the condition value (case-insensitive)
+- `notContains` - String value does not contain the condition value (case-insensitive)
+
+#### Style Properties
+
+- `backgroundColor` - Background color (CSS color value, e.g., `'#90EE90'` or `'rgb(144, 238, 144)'`)
+- `color` - Text color (CSS color value)
+- `fontWeight` - Font weight (`'normal'`, `'bold'`, `'lighter'`)
+- `fontStyle` - Font style (`'normal'`, `'italic'`, `'oblique'`)
+
+Rules are evaluated in order, and the first matching rule's style is applied. Conditional formatting styles take precedence over heatmap colors.
+
+### Column and Row Sorting
+
+You can enable interactive sorting for individual column and row attributes by providing `colSorts` and `rowSorts` props. Click the sort buttons (↔ for columns, ⇅ for rows) next to attribute labels in the table headers to cycle through sort states: ascending → descending → no sort.
+
+```js
+// Initialize with some sorts
+colSorts: {
+  'Category': 'ASC',
+  'Region': 'DESC'
+},
+rowSorts: {
+  'Product': 'ASC'
+}
+
+// Handle sort changes
+onColSort={(attr, sortDir) => {
+  // sortDir is 'ASC', 'DESC', or null
+  const colSorts = { ...this.state.colSorts };
+  if (sortDir === null) {
+    delete colSorts[attr];
+  } else {
+    colSorts[attr] = sortDir;
+  }
+  this.setState({ colSorts });
+}}
+
+onRowSort={(attr, sortDir) => {
+  // Similar handling for row sorts
+}}
+```
+
+Note: `colSorts` and `rowSorts` control sorting of individual attributes, while `colOrder` and `rowOrder` control the overall ordering strategy (by key or by value totals).
+
+### Cell Click Callbacks
+
+You can add click handlers to table cells via the `tableOptions.clickCallback` property:
+
+```js
+tableOptions: {
+  clickCallback: function(e, value, filters, pivotData) {
+    // e - the click event
+    // value - the cell value
+    // filters - object with attribute-value pairs for the clicked cell
+    // pivotData - the PivotData instance for accessing underlying records
+    console.log('Clicked cell with value:', value);
+    console.log('Filters:', filters);
+    
+    // Access underlying records
+    pivotData.forEachMatchingRecord(filters, function(record) {
+      console.log('Matching record:', record);
+    });
+  }
+}
+```
 
 ### Accepted formats for `data`
 
