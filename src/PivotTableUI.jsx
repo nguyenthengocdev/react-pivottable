@@ -1071,20 +1071,18 @@ class PivotTableUI extends React.PureComponent {
   }
 
   handleColSort(attr, sortDir) {
-    const colSorts = Object.assign({}, this.props.colSorts || {});
-    if (sortDir === null) {
-      delete colSorts[attr];
-    } else {
+    // Only allow sorting 1 column at a time - clear all other column sorts
+    const colSorts = {};
+    if (sortDir !== null) {
       colSorts[attr] = sortDir;
     }
     this.sendPropUpdate({ colSorts: { $set: colSorts } });
   }
 
   handleRowSort(attr, sortDir) {
-    const rowSorts = Object.assign({}, this.props.rowSorts || {});
-    if (sortDir === null) {
-      delete rowSorts[attr];
-    } else {
+    // Only allow sorting 1 row at a time - clear all other row sorts
+    const rowSorts = {};
+    if (sortDir !== null) {
       rowSorts[attr] = sortDir;
     }
     this.sendPropUpdate({ rowSorts: { $set: rowSorts } });
