@@ -4,6 +4,7 @@ import TableRenderers from '../src/TableRenderers';
 import createPlotlyComponent from 'react-plotly.js/factory';
 import createPlotlyRenderers from '../src/PlotlyRenderers';
 import PivotTableUI from '../src/PivotTableUI';
+// import { builtInSorters } from '../src/Utilities'; // Available for custom sorters
 import '../src/pivottable.css';
 import Dropzone from 'react-dropzone';
 import Papa from 'papaparse';
@@ -13,11 +14,11 @@ const Plot = createPlotlyComponent(window.Plotly);
 class PivotTableUISmartWrapper extends React.PureComponent {
     constructor(props) {
         super(props);
-        this.state = {pivotState: props};
+        this.state = { pivotState: props };
     }
 
     componentWillReceiveProps(nextProps) {
-        this.setState({pivotState: nextProps});
+        this.setState({ pivotState: nextProps });
     }
 
     render() {
@@ -29,7 +30,7 @@ class PivotTableUISmartWrapper extends React.PureComponent {
                     createPlotlyRenderers(Plot)
                 )}
                 {...this.state.pivotState}
-                onChange={s => this.setState({pivotState: s})}
+                onChange={s => this.setState({ pivotState: s })}
                 unusedOrientationCutoff={Infinity}
             />
         );
@@ -49,13 +50,35 @@ export default class App extends React.Component {
                 vals: [],
                 aggregations: [],
                 rendererName: 'Table',
-                sorters: {},
-                plotlyOptions: {width: 900, height: 500},
+                // Custom sorters example:
+                // You can specify sorters in multiple ways:
+                // 1. By data type name (string): 'number', 'date', 'string', 'stringCaseInsensitive', 'natural'
+                // 2. By providing sample values (array): The system will auto-detect the data type
+                // 3. By providing a custom function: (a, b) => a - b
+                sorters: {
+                    // Example: Use number sorter for numeric columns
+                    // 'Total Bill': 'number',
+                    // 'Tip': 'number',
+                    // Example: Use date sorter for date columns
+                    // 'Date': 'date',
+                    // Example: Use case-insensitive string sorter
+                    // 'Day': 'stringCaseInsensitive',
+                    // Example: Custom sorter function
+                    // 'Smoker': (a, b) => {
+                    //     // Custom logic: 'Yes' before 'No'
+                    //     if (a === 'Yes' && b === 'No') return -1;
+                    //     if (a === 'No' && b === 'Yes') return 1;
+                    //     return a > b ? 1 : a < b ? -1 : 0;
+                    // },
+                    // Example: Auto-detect by providing sample values
+                    // 'SomeColumn': ['value1', 'value2', 'value3'],
+                },
+                plotlyOptions: { width: 900, height: 500 },
                 plotlyConfig: {},
                 tableOptions: {
-                    clickCallback: function(e, value, filters, pivotData) {
+                    clickCallback: function (e, value, filters, pivotData) {
                         var names = [];
-                        pivotData.forEachMatchingRecord(filters, function(
+                        pivotData.forEachMatchingRecord(filters, function (
                             record
                         ) {
                             names.push(record.Meal);
@@ -72,7 +95,7 @@ export default class App extends React.Component {
                 mode: 'thinking',
                 filename: '(Parsing CSV...)',
                 textarea: '',
-                pivotState: {data: []},
+                pivotState: { data: [] },
             },
             () =>
                 Papa.parse(files[0], {
@@ -82,7 +105,7 @@ export default class App extends React.Component {
                         this.setState({
                             mode: 'file',
                             filename: files[0].name,
-                            pivotState: {data: parsed.data},
+                            pivotState: { data: parsed.data },
                         }),
                 })
         );
@@ -97,7 +120,7 @@ export default class App extends React.Component {
                     mode: 'text',
                     filename: 'Data from <textarea>',
                     textarea: event.target.value,
-                    pivotState: {data: parsed.data},
+                    pivotState: { data: parsed.data },
                 }),
         });
     }

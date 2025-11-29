@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {PivotData} from './Utilities';
+import { PivotData } from './Utilities';
 import TableRenderers from './TableRenderers';
 
 /* eslint-disable react/prop-types */
@@ -20,6 +20,10 @@ class PivotTable extends React.PureComponent {
 PivotTable.propTypes = Object.assign({}, PivotData.propTypes, {
   rendererName: PropTypes.string,
   renderers: PropTypes.objectOf(PropTypes.func),
+  colSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
+  rowSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
+  onColSort: PropTypes.func,
+  onRowSort: PropTypes.func,
 });
 
 PivotTable.defaultProps = Object.assign({}, PivotData.defaultProps, {

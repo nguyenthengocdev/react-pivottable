@@ -1,3 +1,4 @@
+/* eslint-disable no-undefined */
 import PropTypes from 'prop-types';
 
 /*
@@ -151,7 +152,118 @@ const sortAs = function (order) {
   };
 };
 
-const getSort = function (sorters, attr) {
+// Built-in sort functions for different data types
+const builtInSorters = {
+  // Number sorter - handles numeric values
+  number: (a, b) => {
+    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
+    if (b === null || b === undefined || b === '') { return 1; }
+    const numA = typeof a === 'number' ? a : parseFloat(a);
+    const numB = typeof b === 'number' ? b : parseFloat(b);
+    if (isNaN(numA) && isNaN(numB)) { return 0; }
+    if (isNaN(numA)) { return -1; }
+    if (isNaN(numB)) { return 1; }
+    return numA - numB;
+  },
+
+  // Date sorter - handles date values
+  date: (a, b) => {
+    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
+    if (b === null || b === undefined || b === '') { return 1; }
+    const dateA = a instanceof Date ? a : new Date(a);
+    const dateB = b instanceof Date ? b : new Date(b);
+    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) { return 0; }
+    if (isNaN(dateA.getTime())) { return -1; }
+    if (isNaN(dateB.getTime())) { return 1; }
+    return dateA.getTime() - dateB.getTime();
+  },
+
+  // String sorter - case-sensitive
+  string: (a, b) => {
+    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
+    if (b === null || b === undefined || b === '') { return 1; }
+    const strA = String(a);
+    const strB = String(b);
+    return strA > strB ? 1 : strA < strB ? -1 : 0;
+  },
+
+  // String sorter - case-insensitive
+  stringCaseInsensitive: (a, b) => {
+    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
+    if (b === null || b === undefined || b === '') { return 1; }
+    const strA = String(a).toLowerCase();
+    const strB = String(b).toLowerCase();
+    return strA > strB ? 1 : strA < strB ? -1 : 0;
+  },
+
+  // Natural sort (default)
+  natural: naturalSort,
+};
+
+// Alias for backward compatibility
+// const sorters = builtInSorters;
+
+// Auto-detect data type from sample values
+const detectDataType = function (values) {
+  if (!values || values.length === 0) { return 'natural'; }
+
+  const sampleSize = Math.min(10, values.length);
+  const samples = values.slice(0, sampleSize);
+
+  let numberCount = 0;
+  let dateCount = 0;
+  let stringCount = 0;
+
+  for (const val of samples) {
+    if (val === null || val === undefined || val === '') { continue; }
+
+    // Check if it's a number
+    if (typeof val === 'number' || (!isNaN(parseFloat(val)) && isFinite(val))) {
+      numberCount++;
+    }
+    // Check if it's a date
+    else if (val instanceof Date || (!isNaN(Date.parse(val)) && String(val).match(/^\d{4}-\d{2}-\d{2}/))) {
+      dateCount++;
+    }
+    // Otherwise it's a string
+    else {
+      stringCount++;
+    }
+  }
+
+  // Determine the most common type
+  if (numberCount > dateCount && numberCount > stringCount) {
+    return 'number';
+  } else if (dateCount > stringCount) {
+    return 'date';
+  } else if (stringCount > 0) {
+    return 'string';
+  }
+
+  return 'natural';
+};
+
+// Create a sorter based on data type
+const createSorterByType = function (dataType, options = {}) {
+  if (typeof dataType === 'function') {
+    return dataType;
+  }
+
+  if (typeof dataType === 'string' && dataType in builtInSorters) {
+    return builtInSorters[dataType];
+  }
+
+  // Auto-detect if dataType is an array of values
+  if (Array.isArray(dataType)) {
+    const detectedType = detectDataType(dataType);
+    return builtInSorters[detectedType] || naturalSort;
+  }
+
+  return naturalSort;
+};
+
+// Get sorter for an attribute, with auto-detection support
+const getSort = function (sorters, attr, attrValues = null) {
   if (sorters) {
     if (typeof sorters === 'function') {
       const sort = sorters(attr);
@@ -159,9 +271,27 @@ const getSort = function (sorters, attr) {
         return sort;
       }
     } else if (attr in sorters) {
-      return sorters[attr];
+      const sorter = sorters[attr];
+      // If it's a string (data type name) or array (sample values), create appropriate sorter
+      if (typeof sorter === 'string' || Array.isArray(sorter)) {
+        return createSorterByType(sorter);
+      }
+      // If it's already a function, use it
+      if (typeof sorter === 'function') {
+        return sorter;
+      }
     }
   }
+
+  // Auto-detect if attrValues are provided
+  if (attrValues && typeof attrValues === 'object') {
+    const values = Object.keys(attrValues);
+    if (values.length > 0) {
+      const detectedType = detectDataType(values);
+      return builtInSorters[detectedType] || naturalSort;
+    }
+  }
+
   return naturalSort;
 };
 
@@ -650,25 +780,71 @@ class PivotData {
     if (!this.sorted) {
       this.sorted = true;
       const v = (r, c) => this.getAggregator(r, c).value();
-      switch (this.props.rowOrder) {
-        case 'value_a_to_z':
-          this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
-          break;
-        case 'value_z_to_a':
-          this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
-          break;
-        default:
-          this.rowKeys.sort(this.arrSort(this.props.rows));
+
+      // Handle per-row sorting
+      if (this.props.rowSorts && Object.keys(this.props.rowSorts).length > 0) {
+        const rowSorts = this.props.rowSorts;
+        this.rowKeys.sort((a, b) => {
+          // First, check if any sorted attribute has a difference
+          for (let i = 0; i < this.props.rows.length; i++) {
+            const attr = this.props.rows[i];
+            if (attr && rowSorts[attr]) {
+              const sortDir = rowSorts[attr] === 'ASC' ? 1 : -1;
+              const sorter = getSort(this.props.sorters, attr);
+              const comparison = sorter(a[i] || '', b[i] || '');
+              if (comparison !== 0) {
+                return sortDir * comparison;
+              }
+            }
+          }
+          // If sorted attributes are equal, use default sorting for remaining attributes
+          return this.arrSort(this.props.rows)(a, b);
+        });
+      } else {
+        // Use global row order
+        switch (this.props.rowOrder) {
+          case 'value_a_to_z':
+            this.rowKeys.sort((a, b) => naturalSort(v(a, []), v(b, [])));
+            break;
+          case 'value_z_to_a':
+            this.rowKeys.sort((a, b) => -naturalSort(v(a, []), v(b, [])));
+            break;
+          default:
+            this.rowKeys.sort(this.arrSort(this.props.rows));
+        }
       }
-      switch (this.props.colOrder) {
-        case 'value_a_to_z':
-          this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
-          break;
-        case 'value_z_to_a':
-          this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
-          break;
-        default:
-          this.colKeys.sort(this.arrSort(this.props.cols));
+
+      // Handle per-column sorting
+      if (this.props.colSorts && Object.keys(this.props.colSorts).length > 0) {
+        const colSorts = this.props.colSorts;
+        this.colKeys.sort((a, b) => {
+          // First, check if any sorted attribute has a difference
+          for (let i = 0; i < this.props.cols.length; i++) {
+            const attr = this.props.cols[i];
+            if (attr && colSorts[attr]) {
+              const sortDir = colSorts[attr] === 'ASC' ? 1 : -1;
+              const sorter = getSort(this.props.sorters, attr);
+              const comparison = sorter(a[i] || '', b[i] || '');
+              if (comparison !== 0) {
+                return sortDir * comparison;
+              }
+            }
+          }
+          // If sorted attributes are equal, use default sorting for remaining attributes
+          return this.arrSort(this.props.cols)(a, b);
+        });
+      } else {
+        // Use global col order
+        switch (this.props.colOrder) {
+          case 'value_a_to_z':
+            this.colKeys.sort((a, b) => naturalSort(v([], a), v([], b)));
+            break;
+          case 'value_z_to_a':
+            this.colKeys.sort((a, b) => -naturalSort(v([], a), v([], b)));
+            break;
+          default:
+            this.colKeys.sort(this.arrSort(this.props.cols));
+        }
       }
     }
   }
@@ -928,6 +1104,8 @@ PivotData.defaultProps = {
   valueFilter: {},
   rowOrder: 'key_a_to_z',
   colOrder: 'key_a_to_z',
+  rowSorts: {},
+  colSorts: {},
   derivedAttributes: {},
 };
 
@@ -954,6 +1132,8 @@ PivotData.propTypes = {
   derivedAttributes: PropTypes.objectOf(PropTypes.func),
   rowOrder: PropTypes.oneOf(['key_a_to_z', 'value_a_to_z', 'value_z_to_a']),
   colOrder: PropTypes.oneOf(['key_a_to_z', 'value_a_to_z', 'value_z_to_a']),
+  rowSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
+  colSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
 };
 
 export {
@@ -965,5 +1145,8 @@ export {
   numberFormat,
   getSort,
   sortAs,
+  builtInSorters,
+  detectDataType,
+  createSorterByType,
   PivotData,
 };

@@ -357,3 +357,44 @@ table.pvtTable tbody tr td {
 .pvtRendererArea {
     padding: 5px;
 }
+
+.pvtSortButton {
+    display: inline-block;
+    margin-left: 5px;
+    padding: 2px 4px;
+    border: 1px solid #c8d4e3;
+    background: #f2f5fa;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    vertical-align: middle;
+    color: #506784;
+    transition: 0.2s all;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -khtml-user-select: none;
+    -ms-user-select: none;
+}
+
+.pvtSortButton:hover {
+    background: #e2e8f0;
+    border-color: #a2b1c6;
+}
+
+.pvtSortButton:active {
+    background: #d1dae6;
+}
+
+.pvtAxisLabel {
+    position: relative;
+}
+
+.pvtAxisLabel .pvtSortButton {
+    opacity: 0.6;
+}
+
+.pvtAxisLabel:hover .pvtSortButton {
+    opacity: 1;
+}

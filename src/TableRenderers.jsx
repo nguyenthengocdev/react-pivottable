@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {PivotData} from './Utilities';
+import { PivotData } from './Utilities';
 
 // helper function for setting row/col-span in pivotTableRenderer
-const spanSize = function(arr, i, j) {
+const spanSize = function (arr, i, j) {
   let x;
   if (i !== 0) {
     let asc, end;
@@ -48,7 +48,7 @@ function redColorScaleGenerator(values) {
   return x => {
     // eslint-disable-next-line no-magic-numbers
     const nonRed = 255 - Math.round((255 * (x - min)) / (max - min));
-    return {backgroundColor: `rgb(255,${nonRed},${nonRed})`};
+    return { backgroundColor: `rgb(255,${nonRed},${nonRed})` };
   };
 }
 
@@ -69,26 +69,26 @@ function makeRenderer(opts = {}) {
         hasMultipleAggregators && rowKeys.length === 0 ? [[]] : rowKeys;
       const renderedRows = hasMultipleAggregators
         ? baseRowKeys.reduce((acc, rowKey) => {
-            aggregations.forEach(agg => {
-              acc.push({
-                displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
-                actualKey: rowKey,
-                aggregationKey: agg.key,
-              });
+          aggregations.forEach(agg => {
+            acc.push({
+              displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
+              actualKey: rowKey,
+              aggregationKey: agg.key,
             });
-            return acc;
-          }, [])
+          });
+          return acc;
+        }, [])
         : baseRowKeys.map(rowKey => ({
-            displayKey: rowKey,
-            actualKey: rowKey,
-            aggregationKey: primaryAggregation.key,
-          }));
+          displayKey: rowKey,
+          actualKey: rowKey,
+          aggregationKey: primaryAggregation.key,
+        }));
       const rowKeyValues = renderedRows.map(r => r.displayKey);
       const colKeys = pivotData.getColKeys();
 
-      let valueCellColors = () => {};
-      let rowTotalColors = () => {};
-      let colTotalColors = () => {};
+      let valueCellColors = () => { };
+      let rowTotalColors = () => { };
+      let colTotalColors = () => { };
       if (opts.heatmapMode && !hasMultipleAggregators) {
         const colorScaleGenerator = this.props.tableColorScaleGenerator;
         const rowTotalValues = colKeys.map(x =>
@@ -135,33 +135,85 @@ function makeRenderer(opts = {}) {
       const getClickHandler =
         this.props.tableOptions && this.props.tableOptions.clickCallback
           ? (value, rowValues, colValues) => {
-              const filters = {};
-              for (const i of Object.keys(colAttrs || {})) {
-                const attr = colAttrs[i];
-                if (colValues[i] !== null) {
-                  filters[attr] = colValues[i];
-                }
+            const filters = {};
+            for (const i of Object.keys(colAttrs || {})) {
+              const attr = colAttrs[i];
+              if (colValues[i] !== null) {
+                filters[attr] = colValues[i];
               }
-              for (const i of Object.keys(rowAttrs || {})) {
-                const attr = rowAttrs[i];
-                if (rowValues[i] !== null) {
-                  filters[attr] = rowValues[i];
-                }
-              }
-              return e =>
-                this.props.tableOptions.clickCallback(
-                  e,
-                  value,
-                  filters,
-                  pivotData
-                );
             }
+            for (const i of Object.keys(rowAttrs || {})) {
+              const attr = rowAttrs[i];
+              if (rowValues[i] !== null) {
+                filters[attr] = rowValues[i];
+              }
+            }
+            return e =>
+              this.props.tableOptions.clickCallback(
+                e,
+                value,
+                filters,
+                pivotData
+              );
+          }
           : null;
+
+      const handleColSort = (attr, e) => {
+        e.stopPropagation();
+        if (this.props.onColSort) {
+          const currentSort = this.props.colSorts && this.props.colSorts[attr];
+          let nextSort = 'ASC';
+          if (currentSort === 'ASC') {
+            nextSort = 'DESC';
+          } else if (currentSort === 'DESC') {
+            nextSort = null;
+          }
+          this.props.onColSort(attr, nextSort);
+        }
+      };
+
+      const handleRowSort = (attr, e) => {
+        e.stopPropagation();
+        if (this.props.onRowSort) {
+          const currentSort = this.props.rowSorts && this.props.rowSorts[attr];
+          let nextSort = 'ASC';
+          if (currentSort === 'ASC') {
+            nextSort = 'DESC';
+          } else if (currentSort === 'DESC') {
+            nextSort = null;
+          }
+          this.props.onRowSort(attr, nextSort);
+        }
+      };
+
+      const getSortButton = (attr, isCol) => {
+        const currentSort = isCol
+          ? (this.props.colSorts && this.props.colSorts[attr])
+          : (this.props.rowSorts && this.props.rowSorts[attr]);
+        const handleSort = isCol ? handleColSort : handleRowSort;
+        let sortIcon;
+        if (isCol) {
+          // Vertical arrows for columns
+          sortIcon = currentSort === 'ASC' ? '→' : currentSort === 'DESC' ? '←' : '↔';
+        } else {
+          // Horizontal arrows for rows
+          sortIcon = currentSort === 'ASC' ? '↑' : currentSort === 'DESC' ? '↓' : '⇅';
+        }
+        return (
+          <button
+            className="pvtSortButton"
+            onClick={e => handleSort(attr, e)}
+            title={currentSort === 'ASC' ? 'Sort Descending' : currentSort === 'DESC' ? 'Clear Sort' : 'Sort Ascending'}
+          >
+            {sortIcon}
+          </button>
+        );
+      };
 
       return (
         <table className="pvtTable">
           <thead>
-            {colAttrs.map(function(c, j) {
+            {colAttrs.map(function (c, j) {
               return (
                 <tr key={`colAttr${j}`}>
                   {j === 0 && rowAttrsToRender.length !== 0 && (
@@ -170,8 +222,11 @@ function makeRenderer(opts = {}) {
                       rowSpan={colAttrs.length}
                     />
                   )}
-                  <th className="pvtAxisLabel">{c}</th>
-                  {colKeys.map(function(colKey, i) {
+                  <th className="pvtAxisLabel">
+                    {c}
+                    {getSortButton(c, true)}
+                  </th>
+                  {colKeys.map(function (colKey, i) {
                     const x = spanSize(colKeys, i, j);
                     if (x === -1) {
                       return null;
@@ -183,7 +238,7 @@ function makeRenderer(opts = {}) {
                         colSpan={x}
                         rowSpan={
                           j === colAttrs.length - 1 &&
-                          rowAttrsToRender.length !== 0
+                            rowAttrsToRender.length !== 0
                             ? 2
                             : 1
                         }
@@ -210,10 +265,13 @@ function makeRenderer(opts = {}) {
 
             {rowAttrsToRender.length !== 0 && (
               <tr>
-                {rowAttrsToRender.map(function(r, i) {
+                {rowAttrsToRender.map((r, i) => {
+                  const isRowAttr = i < rowAttrs.length;
+                  const attr = isRowAttr ? rowAttrs[i] : null;
                   return (
                     <th className="pvtAxisLabel" key={`rowAttr${i}`}>
                       {r}
+                      {isRowAttr && attr && getSortButton(attr, false)}
                     </th>
                   );
                 })}
@@ -225,7 +283,7 @@ function makeRenderer(opts = {}) {
           </thead>
 
           <tbody>
-            {renderedRows.map(function(rowMeta, i) {
+            {renderedRows.map(function (rowMeta, i) {
               const totalAggregator = pivotData.getAggregator(
                 rowMeta.actualKey,
                 [],
@@ -234,7 +292,7 @@ function makeRenderer(opts = {}) {
               const displayKey = rowMeta.displayKey;
               return (
                 <tr key={`rowKeyRow${i}`}>
-                  {displayKey.map(function(txt, j) {
+                  {displayKey.map(function (txt, j) {
                     const x = spanSize(rowKeyValues, i, j);
                     if (x === -1) {
                       return null;
@@ -246,7 +304,7 @@ function makeRenderer(opts = {}) {
                         rowSpan={x}
                         colSpan={
                           j === rowAttrsToRender.length - 1 &&
-                          colAttrs.length !== 0
+                            colAttrs.length !== 0
                             ? 2
                             : 1
                         }
@@ -255,7 +313,7 @@ function makeRenderer(opts = {}) {
                       </th>
                     );
                   })}
-                  {colKeys.map(function(colKey, j) {
+                  {colKeys.map(function (colKey, j) {
                     const aggregator = pivotData.getAggregator(
                       rowMeta.actualKey,
                       colKey,
@@ -299,7 +357,7 @@ function makeRenderer(opts = {}) {
             })}
 
             {(hasMultipleAggregators ? aggregations : [primaryAggregation]).map(
-              function(agg) {
+              function (agg) {
                 const grandTotalAggregator = pivotData.getAggregator(
                   [],
                   [],
@@ -320,7 +378,7 @@ function makeRenderer(opts = {}) {
                       {totalLabel}
                     </th>
 
-                    {colKeys.map(function(colKey, i) {
+                    {colKeys.map(function (colKey, i) {
                       const totalAggregator = pivotData.getAggregator(
                         [],
                         colKey,
@@ -374,8 +432,14 @@ function makeRenderer(opts = {}) {
   TableRenderer.propTypes = PivotData.propTypes;
   TableRenderer.defaultProps.tableColorScaleGenerator = redColorScaleGenerator;
   TableRenderer.defaultProps.tableOptions = {};
+  TableRenderer.defaultProps.colSorts = {};
+  TableRenderer.defaultProps.rowSorts = {};
   TableRenderer.propTypes.tableColorScaleGenerator = PropTypes.func;
   TableRenderer.propTypes.tableOptions = PropTypes.object;
+  TableRenderer.propTypes.colSorts = PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC']));
+  TableRenderer.propTypes.rowSorts = PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC']));
+  TableRenderer.propTypes.onColSort = PropTypes.func;
+  TableRenderer.propTypes.onRowSort = PropTypes.func;
   return TableRenderer;
 }
 
@@ -392,16 +456,16 @@ class TSVExportRenderer extends React.PureComponent {
 
     const rowEntries = hasMultipleAggregators
       ? safeRowKeys.reduce((acc, rowKey) => {
-          aggregations.forEach(agg => {
-            acc.push({rowKey, aggregationKey: agg.key, label: agg.label});
-          });
-          return acc;
-        }, [])
+        aggregations.forEach(agg => {
+          acc.push({ rowKey, aggregationKey: agg.key, label: agg.label });
+        });
+        return acc;
+      }, [])
       : safeRowKeys.map(rowKey => ({
-          rowKey,
-          aggregationKey: aggregations[0].key,
-          label: aggregations[0].label || aggregations[0].aggregatorName,
-        }));
+        rowKey,
+        aggregationKey: aggregations[0].key,
+        label: aggregations[0].label || aggregations[0].aggregatorName,
+      }));
 
     const headerRow = rowAttrs.slice();
     if (hasMultipleAggregators) {
@@ -436,7 +500,7 @@ class TSVExportRenderer extends React.PureComponent {
     return (
       <textarea
         value={result.map(r => r.join('\t')).join('\n')}
-        style={{width: window.innerWidth / 2, height: window.innerHeight / 2}}
+        style={{ width: window.innerWidth / 2, height: window.innerHeight / 2 }}
         readOnly={true}
       />
     );
@@ -448,8 +512,8 @@ TSVExportRenderer.propTypes = PivotData.propTypes;
 
 export default {
   Table: makeRenderer(),
-  'Table Heatmap': makeRenderer({heatmapMode: 'full'}),
-  'Table Col Heatmap': makeRenderer({heatmapMode: 'col'}),
-  'Table Row Heatmap': makeRenderer({heatmapMode: 'row'}),
+  'Table Heatmap': makeRenderer({ heatmapMode: 'full' }),
+  'Table Col Heatmap': makeRenderer({ heatmapMode: 'col' }),
+  'Table Row Heatmap': makeRenderer({ heatmapMode: 'row' }),
   'Exportable TSV': TSVExportRenderer,
 };

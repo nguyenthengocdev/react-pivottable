@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import update from 'immutability-helper';
-import {PivotData, sortAs, getSort} from './Utilities';
+import { PivotData, sortAs, getSort } from './Utilities';
 import PivotTable from './PivotTable';
 import Sortable from 'react-sortablejs';
 import Draggable from 'react-draggable';
@@ -16,7 +16,7 @@ const AGG_KEY_LENGTH = 7;
 export class DraggableAttribute extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {open: false, filterText: ''};
+    this.state = { open: false, filterText: '' };
   }
 
   toggleValue(value) {
@@ -62,7 +62,7 @@ export class DraggableAttribute extends React.Component {
           }}
           onClick={() => this.props.moveFilterBoxToTop(this.props.name)}
         >
-          <a onClick={() => this.setState({open: false})} className="pvtCloseX">
+          <a onClick={() => this.setState({ open: false })} className="pvtCloseX">
             ×
           </a>
           <span className="pvtDragHandle">☰</span>
@@ -139,7 +139,7 @@ export class DraggableAttribute extends React.Component {
   }
 
   toggleFilterBox() {
-    this.setState({open: !this.state.open});
+    this.setState({ open: !this.state.open });
     this.props.moveFilterBoxToTop(this.props.name);
   }
 
@@ -186,7 +186,7 @@ DraggableAttribute.propTypes = {
 export class Dropdown extends React.PureComponent {
   render() {
     return (
-      <div className="pvtDropdown" style={{zIndex: this.props.zIndex}}>
+      <div className="pvtDropdown" style={{ zIndex: this.props.zIndex }}>
         <div
           onClick={e => {
             e.stopPropagation();
@@ -265,7 +265,7 @@ class PivotTableUI extends React.PureComponent {
     PivotData.forEachRecord(
       newState.data,
       this.props.derivedAttributes,
-      function(record) {
+      function (record) {
         newState.materializedInput.push(record);
         for (const attr of Object.keys(record)) {
           if (!(attr in newState.attrValues)) {
@@ -293,7 +293,7 @@ class PivotTableUI extends React.PureComponent {
   }
 
   propUpdater(key) {
-    return value => this.sendPropUpdate({[key]: {$set: value}});
+    return value => this.sendPropUpdate({ [key]: { $set: value } });
   }
 
   hasExternalAggregations() {
@@ -308,7 +308,7 @@ class PivotTableUI extends React.PureComponent {
     const fallbackVals = Array.isArray(this.props.vals)
       ? this.props.vals.slice()
       : [];
-    const aggregationsProvided =  this.hasExternalAggregations();
+    const aggregationsProvided = this.hasExternalAggregations();
     const defaultAggregations = [
       {
         key: 'agg-default',
@@ -324,8 +324,8 @@ class PivotTableUI extends React.PureComponent {
       const baseVals = Array.isArray(agg.vals)
         ? agg.vals.slice()
         : aggregationsProvided
-        ? []
-        : fallbackVals;
+          ? []
+          : fallbackVals;
       return {
         key: agg.key || `agg-${idx}`,
         aggregatorName,
@@ -392,11 +392,11 @@ class PivotTableUI extends React.PureComponent {
     });
     const primary = sanitized[0];
     const command = {
-      aggregations: {$set: sanitized},
+      aggregations: { $set: sanitized },
     };
     if (!this.hasExternalAggregations()) {
-      command.aggregatorName = {$set: primary.aggregatorName};
-      command.vals = {$set: primary.vals};
+      command.aggregatorName = { $set: primary.aggregatorName };
+      command.vals = { $set: primary.vals };
     }
     this.sendPropUpdate(command);
   }
@@ -461,7 +461,7 @@ class PivotTableUI extends React.PureComponent {
       this.sendPropUpdate({
         valueFilter: {
           [attribute]: values.reduce((r, v) => {
-            r[v] = {$set: true};
+            r[v] = { $set: true };
             return r;
           }, {}),
         },
@@ -473,17 +473,37 @@ class PivotTableUI extends React.PureComponent {
 
   removeValuesFromFilter(attribute, values) {
     this.sendPropUpdate({
-      valueFilter: {[attribute]: {$unset: values}},
+      valueFilter: { [attribute]: { $unset: values } },
     });
   }
 
   moveFilterBoxToTop(attribute) {
     this.setState(
       update(this.state, {
-        maxZIndex: {$set: this.state.maxZIndex + 1},
-        zIndices: {[attribute]: {$set: this.state.maxZIndex + 1}},
+        maxZIndex: { $set: this.state.maxZIndex + 1 },
+        zIndices: { [attribute]: { $set: this.state.maxZIndex + 1 } },
       })
     );
+  }
+
+  handleColSort(attr, sortDir) {
+    const colSorts = Object.assign({}, this.props.colSorts || {});
+    if (sortDir === null) {
+      delete colSorts[attr];
+    } else {
+      colSorts[attr] = sortDir;
+    }
+    this.sendPropUpdate({ colSorts: { $set: colSorts } });
+  }
+
+  handleRowSort(attr, sortDir) {
+    const rowSorts = Object.assign({}, this.props.rowSorts || {});
+    if (sortDir === null) {
+      delete rowSorts[attr];
+    } else {
+      rowSorts[attr] = sortDir;
+    }
+    this.sendPropUpdate({ rowSorts: { $set: rowSorts } });
   }
 
   isOpen(dropdown) {
@@ -509,7 +529,7 @@ class PivotTableUI extends React.PureComponent {
             key={x}
             attrValues={this.state.attrValues[x]}
             valueFilter={this.props.valueFilter[x] || {}}
-            sorter={getSort(this.props.sorters, x)}
+            sorter={getSort(this.props.sorters, x, this.state.attrValues[x])}
             menuLimit={this.props.menuLimit}
             setValuesInFilter={this.setValuesInFilter.bind(this)}
             addValuesToFilter={this.addValuesToFilter.bind(this)}
@@ -563,7 +583,7 @@ class PivotTableUI extends React.PureComponent {
         colSymbol: '→',
         next: 'value_z_to_a',
       },
-      value_z_to_a: {rowSymbol: '↑', colSymbol: '←', next: 'key_a_to_z'},
+      value_z_to_a: { rowSymbol: '↑', colSymbol: '←', next: 'key_a_to_z' },
     };
 
     const attributeOptions = this.getAttributeOptions();
@@ -688,9 +708,8 @@ class PivotTableUI extends React.PureComponent {
 
     const unusedAttrsCell = this.makeDnDCell(
       unusedAttrs,
-      order => this.setState({unusedOrder: order}),
-      `pvtAxisContainer pvtUnused ${
-        horizUnused ? 'pvtHorizList' : 'pvtVertList'
+      order => this.setState({ unusedOrder: order }),
+      `pvtAxisContainer pvtUnused ${horizUnused ? 'pvtHorizList' : 'pvtVertList'
       }`
     );
 
@@ -720,8 +739,12 @@ class PivotTableUI extends React.PureComponent {
       <td className="pvtOutput">
         <PivotTable
           {...update(this.props, {
-            data: {$set: this.state.materializedInput},
+            data: { $set: this.state.materializedInput },
           })}
+          colSorts={this.props.colSorts || {}}
+          rowSorts={this.props.rowSorts || {}}
+          onColSort={this.handleColSort.bind(this)}
+          onRowSort={this.handleRowSort.bind(this)}
         />
       </td>
     );
@@ -729,7 +752,7 @@ class PivotTableUI extends React.PureComponent {
     if (horizUnused) {
       return (
         <table className="pvtUi">
-          <tbody onClick={() => this.setState({openDropdown: false})}>
+          <tbody onClick={() => this.setState({ openDropdown: false })}>
             <tr>
               {rendererCell}
               {unusedAttrsCell}
@@ -749,7 +772,7 @@ class PivotTableUI extends React.PureComponent {
 
     return (
       <table className="pvtUi">
-        <tbody onClick={() => this.setState({openDropdown: false})}>
+        <tbody onClick={() => this.setState({ openDropdown: false })}>
           <tr>
             {rendererCell}
             {aggregatorCell}
@@ -773,6 +796,8 @@ PivotTableUI.propTypes = Object.assign({}, PivotTable.propTypes, {
   hiddenFromDragDrop: PropTypes.arrayOf(PropTypes.string),
   unusedOrientationCutoff: PropTypes.number,
   menuLimit: PropTypes.number,
+  colSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
+  rowSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
 });
 
 PivotTableUI.defaultProps = Object.assign({}, PivotTable.defaultProps, {
@@ -781,6 +806,8 @@ PivotTableUI.defaultProps = Object.assign({}, PivotTable.defaultProps, {
   hiddenFromDragDrop: [],
   unusedOrientationCutoff: 85,
   menuLimit: 500,
+  colSorts: {},
+  rowSorts: {},
 });
 
 export default PivotTableUI;
