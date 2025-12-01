@@ -203,7 +203,7 @@ indication of which layer consumes each, from the bottom up:
 | `PivotTableUI` | `hiddenFromDragDrop` <br /> array of strings     | `[]`                          | contains attribute names to omit from the drag'n'drop portion of the UI                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `PivotTableUI` | `menuLimit` <br /> integer                       | 500                           | maximum number of values to list in the double-click menu                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `PivotTableUI` | `unusedOrientationCutoff` <br /> integer         | 85                            | If the attributes' names' combined length in characters exceeds this value then the unused attributes area will be shown vertically to the left of the UI instead of horizontally above it. `0` therefore means 'always vertical', and `Infinity` means 'always horizontal'.                                                                                                                                                                                                                                                                                                                                  |
-| `Renderer`     | `tableOptions` <br /> object                     | `{}`                          | object containing table renderer options including `clickCallback` function and `conditionalFormatting` configuration (see below)                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `Renderer`     | `tableOptions` <br /> object                     | `{}`                          | object containing table renderer options including `clickCallback` function, `conditionalFormatting`, `cellFormatting`, and aggregation display settings (see below)                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `PivotTableUI` | `colSorts` <br /> object                         | `{}`                          | object whose keys are column attribute names and values are `'ASC'` or `'DESC'` to control column sorting direction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `PivotTableUI` | `rowSorts` <br /> object                         | `{}`                          | object whose keys are row attribute names and values are `'ASC'` or `'DESC'` to control row sorting direction                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
@@ -222,6 +222,16 @@ const aggregations = [
 Pass that array via the `aggregations` prop (or add/remove them through the updated `PivotTableUI`). Each aggregation behaves like its own “value” in the table renderer, and you can mix and match as many as you like. Renderers that only support a single metric (e.g. the Plotly charts) continue to use the first aggregation as the primary one.
 
 If you want to read the value of a specific aggregation programmatically, call `pivotData.getAggregator(rowKey, colKey, aggregationKey)` where `aggregationKey` matches the `key` you provided (or the aggregator name if keys are omitted).
+
+You can also control whether multiple aggregations are displayed as extra **rows** or as extra **columns** in the table renderer via `tableOptions.aggregationDisplayMode`:
+
+```js
+tableOptions: {
+  aggregationDisplayMode: 'row',    // or 'column'
+}
+```
+
+The same setting is exposed in the `PivotTableUI` via the “Aggregation values on: Rows / Columns” dropdown in the aggregator area.
 
 ### Conditional Formatting
 
@@ -283,6 +293,32 @@ tableOptions: {
 - `fontStyle` - Font style (`'normal'`, `'italic'`, `'oblique'`)
 
 Rules are evaluated in order, and the first matching rule's style is applied. Conditional formatting styles take precedence over heatmap colors.
+
+### Cell Formatting
+
+You can control how numeric cell values (including totals) are formatted via the `tableOptions.cellFormatting` property. This lets you configure thousands separators, decimal separators, decimal places, and optional prefixes/suffixes (for example, to display currency or percentages).
+
+Cell formatting is configured with a `rules` array similar to conditional formatting, but only the first rule is used for formatting:
+
+```js
+tableOptions: {
+  cellFormatting: {
+    rules: [
+      {
+        format: {
+          thousandsSep: ',',
+          decimalSep: '.',
+          decimalPlaces: 2,
+          prefix: '$',
+          suffix: '',
+        },
+      },
+    ],
+  },
+}
+```
+
+Formatting is applied only to numeric values; non-numeric values (like dates or text labels) are left as-is. Clearing all `cellFormatting.rules` will revert cells back to their unformatted numeric values.
 
 ### Column and Row Sorting
 

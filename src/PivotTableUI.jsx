@@ -1151,6 +1151,17 @@ class PivotTableUI extends React.PureComponent {
     this.updateAggregations(aggregations);
   }
 
+  setAggregationDisplayMode(mode) {
+    const allowedModes = ['row', 'column'];
+    const normalizedMode = allowedModes.includes(mode) ? mode : 'row';
+    const tableOptions = Object.assign({}, this.props.tableOptions || {}, {
+      aggregationDisplayMode: normalizedMode,
+    });
+    this.sendPropUpdate({
+      tableOptions: {$set: tableOptions},
+    });
+  }
+
   addAggregationRow() {
     const aggregations = this.getCurrentAggregations();
     const defaultAggregator =
@@ -1273,6 +1284,9 @@ class PivotTableUI extends React.PureComponent {
   render() {
     const aggregations = this.getCurrentAggregations();
     const primaryAggregation = aggregations[0];
+    const tableOptions = this.props.tableOptions || {};
+    const aggregationDisplayMode =
+      tableOptions.aggregationDisplayMode === 'column' ? 'column' : 'row';
     const aggregatorCellOutlet =
       primaryAggregation &&
       this.props.aggregators[primaryAggregation.aggregatorName] &&
@@ -1389,6 +1403,22 @@ class PivotTableUI extends React.PureComponent {
             </div>
           );
         })}
+        <div className="pvtAggregationModeToggle">
+          <label
+            htmlFor="pvtAggregationMode"
+            style={{marginRight: '6px', fontSize: '12px'}}
+          >
+            Aggregation values on:
+          </label>
+          <select
+            id="pvtAggregationMode"
+            value={aggregationDisplayMode}
+            onChange={e => this.setAggregationDisplayMode(e.target.value)}
+          >
+            <option value="row">Rows</option>
+            <option value="column">Columns</option>
+          </select>
+        </div>
         <button
           type="button"
           className="pvtButton pvtAddAggregator"
@@ -1419,7 +1449,7 @@ class PivotTableUI extends React.PureComponent {
         </a>
         {aggregatorCellOutlet && aggregatorCellOutlet(this.props.data)}
         <ConditionalFormattingUI
-          tableOptions={this.props.tableOptions}
+          tableOptions={tableOptions}
           onChange={this.sendPropUpdate.bind(this)}
           moveToTop={this.moveFilterBoxToTop.bind(
             this,
@@ -1430,7 +1460,7 @@ class PivotTableUI extends React.PureComponent {
           }
         />
         <CellFormattingUI
-          tableOptions={this.props.tableOptions}
+          tableOptions={tableOptions}
           onChange={this.sendPropUpdate.bind(this)}
           moveToTop={this.moveFilterBoxToTop.bind(this, 'cellFormatting')}
           zIndex={this.state.zIndices.cellFormatting || this.state.maxZIndex}

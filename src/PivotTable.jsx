@@ -24,11 +24,13 @@ PivotTable.propTypes = Object.assign({}, PivotData.propTypes, {
   rowSorts: PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC'])),
   onColSort: PropTypes.func,
   onRowSort: PropTypes.func,
+  tableOptions: PropTypes.object,
 });
 
 PivotTable.defaultProps = Object.assign({}, PivotData.defaultProps, {
   rendererName: 'Table',
   renderers: TableRenderers,
+  tableOptions: {},
 });
 
 export default PivotTable;
