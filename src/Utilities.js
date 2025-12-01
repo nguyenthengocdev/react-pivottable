@@ -13,7 +13,7 @@ import PropTypes from 'prop-types';
  * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
  */
 
-const addSeparators = function (nStr, thousandsSep, decimalSep) {
+const addSeparators = function(nStr, thousandsSep, decimalSep) {
   const x = String(nStr).split('.');
   let x1 = x[0];
   const x2 = x.length > 1 ? decimalSep + x[1] : '';
@@ -24,7 +24,7 @@ const addSeparators = function (nStr, thousandsSep, decimalSep) {
   return x1 + x2;
 };
 
-const numberFormat = function (opts_in) {
+const numberFormat = function(opts_in) {
   const defaults = {
     digitsAfterDecimal: 2,
     scaler: 1,
@@ -34,7 +34,7 @@ const numberFormat = function (opts_in) {
     suffix: '',
   };
   const opts = Object.assign({}, defaults, opts_in);
-  return function (x) {
+  return function(x) {
     if (isNaN(x) || !isFinite(x)) {
       return '';
     }
@@ -122,7 +122,7 @@ const naturalSort = (as, bs) => {
   return a.length - b.length;
 };
 
-const sortAs = function (order) {
+const sortAs = function(order) {
   const mapping = {};
 
   // sort lowercased keys similarly
@@ -134,7 +134,7 @@ const sortAs = function (order) {
       l_mapping[x.toLowerCase()] = i;
     }
   }
-  return function (a, b) {
+  return function(a, b) {
     if (a in mapping && b in mapping) {
       return mapping[a] - mapping[b];
     } else if (a in mapping) {
@@ -156,32 +156,56 @@ const sortAs = function (order) {
 const builtInSorters = {
   // Number sorter - handles numeric values
   number: (a, b) => {
-    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
-    if (b === null || b === undefined || b === '') { return 1; }
+    if (a === null || a === undefined || a === '') {
+      return b === null || b === undefined || b === '' ? 0 : -1;
+    }
+    if (b === null || b === undefined || b === '') {
+      return 1;
+    }
     const numA = typeof a === 'number' ? a : parseFloat(a);
     const numB = typeof b === 'number' ? b : parseFloat(b);
-    if (isNaN(numA) && isNaN(numB)) { return 0; }
-    if (isNaN(numA)) { return -1; }
-    if (isNaN(numB)) { return 1; }
+    if (isNaN(numA) && isNaN(numB)) {
+      return 0;
+    }
+    if (isNaN(numA)) {
+      return -1;
+    }
+    if (isNaN(numB)) {
+      return 1;
+    }
     return numA - numB;
   },
 
   // Date sorter - handles date values
   date: (a, b) => {
-    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
-    if (b === null || b === undefined || b === '') { return 1; }
+    if (a === null || a === undefined || a === '') {
+      return b === null || b === undefined || b === '' ? 0 : -1;
+    }
+    if (b === null || b === undefined || b === '') {
+      return 1;
+    }
     const dateA = a instanceof Date ? a : new Date(a);
     const dateB = b instanceof Date ? b : new Date(b);
-    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) { return 0; }
-    if (isNaN(dateA.getTime())) { return -1; }
-    if (isNaN(dateB.getTime())) { return 1; }
+    if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) {
+      return 0;
+    }
+    if (isNaN(dateA.getTime())) {
+      return -1;
+    }
+    if (isNaN(dateB.getTime())) {
+      return 1;
+    }
     return dateA.getTime() - dateB.getTime();
   },
 
   // String sorter - case-sensitive
   string: (a, b) => {
-    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
-    if (b === null || b === undefined || b === '') { return 1; }
+    if (a === null || a === undefined || a === '') {
+      return b === null || b === undefined || b === '' ? 0 : -1;
+    }
+    if (b === null || b === undefined || b === '') {
+      return 1;
+    }
     const strA = String(a);
     const strB = String(b);
     return strA > strB ? 1 : strA < strB ? -1 : 0;
@@ -189,8 +213,12 @@ const builtInSorters = {
 
   // String sorter - case-insensitive
   stringCaseInsensitive: (a, b) => {
-    if (a === null || a === undefined || a === '') { return b === null || b === undefined || b === '' ? 0 : -1; }
-    if (b === null || b === undefined || b === '') { return 1; }
+    if (a === null || a === undefined || a === '') {
+      return b === null || b === undefined || b === '' ? 0 : -1;
+    }
+    if (b === null || b === undefined || b === '') {
+      return 1;
+    }
     const strA = String(a).toLowerCase();
     const strB = String(b).toLowerCase();
     return strA > strB ? 1 : strA < strB ? -1 : 0;
@@ -204,8 +232,10 @@ const builtInSorters = {
 // const sorters = builtInSorters;
 
 // Auto-detect data type from sample values
-const detectDataType = function (values) {
-  if (!values || values.length === 0) { return 'natural'; }
+const detectDataType = function(values) {
+  if (!values || values.length === 0) {
+    return 'natural';
+  }
 
   const sampleSize = Math.min(10, values.length);
   const samples = values.slice(0, sampleSize);
@@ -215,14 +245,19 @@ const detectDataType = function (values) {
   let stringCount = 0;
 
   for (const val of samples) {
-    if (val === null || val === undefined || val === '') { continue; }
+    if (val === null || val === undefined || val === '') {
+      continue;
+    }
 
     // Check if it's a number
     if (typeof val === 'number' || (!isNaN(parseFloat(val)) && isFinite(val))) {
       numberCount++;
     }
     // Check if it's a date
-    else if (val instanceof Date || (!isNaN(Date.parse(val)) && String(val).match(/^\d{4}-\d{2}-\d{2}/))) {
+    else if (
+      val instanceof Date ||
+      (!isNaN(Date.parse(val)) && String(val).match(/^\d{4}-\d{2}-\d{2}/))
+    ) {
       dateCount++;
     }
     // Otherwise it's a string
@@ -244,7 +279,7 @@ const detectDataType = function (values) {
 };
 
 // Create a sorter based on data type
-const createSorterByType = function (dataType, options = {}) {
+const createSorterByType = function(dataType) {
   if (typeof dataType === 'function') {
     return dataType;
   }
@@ -263,7 +298,7 @@ const createSorterByType = function (dataType, options = {}) {
 };
 
 // Get sorter for an attribute, with auto-detection support
-const getSort = function (sorters, attr, attrValues = null) {
+const getSort = function(sorters, attr, attrValues = null) {
   if (sorters) {
     if (typeof sorters === 'function') {
       const sort = sorters(attr);
@@ -297,7 +332,7 @@ const getSort = function (sorters, attr, attrValues = null) {
 
 // aggregator templates default to US number formatting but this is overrideable
 const usFmt = numberFormat();
-const usFmtInt = numberFormat({ digitsAfterDecimal: 0 });
+const usFmtInt = numberFormat({digitsAfterDecimal: 0});
 const usFmtPct = numberFormat({
   digitsAfterDecimal: 1,
   scaler: 100,
@@ -307,7 +342,7 @@ const usFmtPct = numberFormat({
 const aggregatorTemplates = {
   count(formatter = usFmtInt) {
     return () =>
-      function () {
+      function() {
         return {
           count: 0,
           push() {
@@ -322,8 +357,8 @@ const aggregatorTemplates = {
   },
 
   uniques(fn, formatter = usFmtInt) {
-    return function ([attr]) {
-      return function () {
+    return function([attr]) {
+      return function() {
         return {
           uniq: [],
           push(record) {
@@ -342,8 +377,8 @@ const aggregatorTemplates = {
   },
 
   sum(formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
+    return function([attr]) {
+      return function() {
         return {
           sum: 0,
           push(record) {
@@ -362,8 +397,8 @@ const aggregatorTemplates = {
   },
 
   extremes(mode, formatter = usFmt) {
-    return function ([attr]) {
-      return function (data) {
+    return function([attr]) {
+      return function(data) {
         return {
           val: null,
           sorter: getSort(
@@ -407,8 +442,8 @@ const aggregatorTemplates = {
   },
 
   quantile(q, formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
+    return function([attr]) {
+      return function() {
         return {
           vals: [],
           push(record) {
@@ -433,8 +468,8 @@ const aggregatorTemplates = {
   },
 
   runningStat(mode = 'mean', ddof = 1, formatter = usFmt) {
-    return function ([attr]) {
-      return function () {
+    return function([attr]) {
+      return function() {
         return {
           n: 0.0,
           m: 0.0,
@@ -479,8 +514,8 @@ const aggregatorTemplates = {
   },
 
   sumOverSum(formatter = usFmt) {
-    return function ([num, denom]) {
-      return function () {
+    return function([num, denom]) {
+      return function() {
         return {
           sumNum: 0,
           sumDenom: 0,
@@ -505,9 +540,9 @@ const aggregatorTemplates = {
 
   fractionOf(wrapped, type = 'total', formatter = usFmtPct) {
     return (...x) =>
-      function (data, rowKey, colKey) {
+      function(data, rowKey, colKey) {
         return {
-          selector: { total: [[], []], row: [rowKey, []], col: [[], colKey] }[
+          selector: {total: [[], []], row: [rowKey, []], col: [[], colKey]}[
             type
           ],
           inner: wrapped(...Array.from(x || []))(data, rowKey, colKey),
@@ -646,12 +681,12 @@ const derivers = {
     dayNames = dayNamesEn
   ) {
     const utc = utcOutput ? 'UTC' : '';
-    return function (record) {
+    return function(record) {
       const date = new Date(Date.parse(record[col]));
       if (isNaN(date)) {
         return '';
       }
-      return formatString.replace(/%(.)/g, function (m, p) {
+      return formatString.replace(/%(.)/g, function(m, p) {
         switch (p) {
           case 'y':
             return date[`get${utc}FullYear`]();
@@ -764,7 +799,7 @@ class PivotData {
       }
       return result;
     })();
-    return function (a, b) {
+    return function(a, b) {
       for (const i of Object.keys(sortersArr || {})) {
         const sorter = sortersArr[i];
         const comparison = sorter(a[i], b[i]);
@@ -986,12 +1021,13 @@ class PivotData {
         typeof agg.vals !== 'undefined'
           ? agg.vals
           : aggregationsProvided
-            ? []
-            : fallbackVals.slice();
+          ? []
+          : fallbackVals.slice();
       const normalizedVals = Array.isArray(vals) ? vals : [];
       const key =
         agg.key ||
-        `${aggregatorName || 'agg'}-${normalizedVals.length ? normalizedVals.join('|') : ''
+        `${aggregatorName || 'agg'}-${
+          normalizedVals.length ? normalizedVals.join('|') : ''
         }-${idx}`;
       const label =
         agg.label ||
@@ -1032,7 +1068,7 @@ class PivotData {
 }
 
 PivotData.emptyAggregator = {
-  push() { },
+  push() {},
   value() {
     return null;
   },
@@ -1042,12 +1078,12 @@ PivotData.emptyAggregator = {
 };
 
 // can handle arrays or jQuery selections of tables
-PivotData.forEachRecord = function (input, derivedAttributes, f) {
+PivotData.forEachRecord = function(input, derivedAttributes, f) {
   let addRecord, record;
   if (Object.getOwnPropertyNames(derivedAttributes).length === 0) {
     addRecord = f;
   } else {
-    addRecord = function (record) {
+    addRecord = function(record) {
       for (const k in derivedAttributes) {
         const derived = derivedAttributes[k](record);
         if (derived !== null) {

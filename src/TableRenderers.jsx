@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { PivotData, numberFormat } from './Utilities';
+import {PivotData, numberFormat} from './Utilities';
 
 // helper function for setting row/col-span in pivotTableRenderer
-const spanSize = function (arr, i, j) {
+const spanSize = function(arr, i, j) {
   let x;
   if (i !== 0) {
     let asc, end;
@@ -48,7 +48,7 @@ function redColorScaleGenerator(values) {
   return x => {
     // eslint-disable-next-line no-magic-numbers
     const nonRed = 255 - Math.round((255 * (x - min)) / (max - min));
-    return { backgroundColor: `rgb(255,${nonRed},${nonRed})` };
+    return {backgroundColor: `rgb(255,${nonRed},${nonRed})`};
   };
 }
 
@@ -58,33 +58,70 @@ function evaluateCondition(value, condition) {
     return false;
   }
 
-  const { type, value: conditionValue } = condition;
+  const {type, value: conditionValue} = condition;
   const numValue = typeof value === 'number' ? value : parseFloat(value);
-  const numConditionValue = typeof conditionValue === 'number' ? conditionValue : parseFloat(conditionValue);
+  const numConditionValue =
+    typeof conditionValue === 'number'
+      ? conditionValue
+      : parseFloat(conditionValue);
 
   switch (type) {
     case 'greaterThan':
-      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue > numConditionValue;
+      return (
+        !isNaN(numValue) &&
+        !isNaN(numConditionValue) &&
+        numValue > numConditionValue
+      );
     case 'lessThan':
-      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue < numConditionValue;
+      return (
+        !isNaN(numValue) &&
+        !isNaN(numConditionValue) &&
+        numValue < numConditionValue
+      );
     case 'greaterThanOrEqual':
-      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue >= numConditionValue;
+      return (
+        !isNaN(numValue) &&
+        !isNaN(numConditionValue) &&
+        numValue >= numConditionValue
+      );
     case 'lessThanOrEqual':
-      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue <= numConditionValue;
+      return (
+        !isNaN(numValue) &&
+        !isNaN(numConditionValue) &&
+        numValue <= numConditionValue
+      );
     case 'equal':
       if (typeof value === 'string' && typeof conditionValue === 'string') {
         return value === conditionValue;
       }
-      return !isNaN(numValue) && !isNaN(numConditionValue) && numValue === numConditionValue;
+      return (
+        !isNaN(numValue) &&
+        !isNaN(numConditionValue) &&
+        numValue === numConditionValue
+      );
     case 'notEqual':
       if (typeof value === 'string' && typeof conditionValue === 'string') {
         return value !== conditionValue;
       }
-      return isNaN(numValue) || isNaN(numConditionValue) || numValue !== numConditionValue;
+      return (
+        isNaN(numValue) ||
+        isNaN(numConditionValue) ||
+        numValue !== numConditionValue
+      );
     case 'empty':
-      return value === null || typeof value === 'undefined' || value === '' || (typeof value === 'number' && isNaN(value));
+      return (
+        value === null ||
+        typeof value === 'undefined' ||
+        value === '' ||
+        (typeof value === 'number' && isNaN(value))
+      );
     case 'notEmpty':
-      return value !== null && typeof value !== 'undefined' && value !== '' && !(typeof value === 'number' && isNaN(value));
+      return (
+        value !== null &&
+        typeof value !== 'undefined' &&
+        value !== '' &&
+        !(typeof value === 'number' && isNaN(value))
+      );
     case 'contains':
       if (typeof value === 'string' && typeof conditionValue === 'string') {
         return value.toLowerCase().includes(conditionValue.toLowerCase());
@@ -160,12 +197,21 @@ function shouldSkipFormattingForAggregation(aggregatorName) {
 }
 
 // Apply cell formatting rules to a value
-function applyCellFormatting(value, cellFormatting, defaultFormatter, aggregatorName = null) {
+function applyCellFormatting(
+  value,
+  cellFormatting,
+  defaultFormatter,
+  aggregatorName = null
+) {
   // Don't format if aggregation type should skip formatting (e.g., Count, First, Last)
   // Only use defaultFormatter if value is numeric, otherwise return as-is
   const isNumeric =
     (typeof value === 'number' && !isNaN(value) && isFinite(value)) ||
-    (typeof value === 'string' && value.trim() !== '' && !containsSpecialCharacters(value) && !isNaN(parseFloat(value)) && isFinite(parseFloat(value)));
+    (typeof value === 'string' &&
+      value.trim() !== '' &&
+      !containsSpecialCharacters(value) &&
+      !isNaN(parseFloat(value)) &&
+      isFinite(parseFloat(value)));
   if (shouldSkipFormattingForAggregation(aggregatorName)) {
     if (isNumeric && defaultFormatter) {
       return defaultFormatter(value);
@@ -177,7 +223,8 @@ function applyCellFormatting(value, cellFormatting, defaultFormatter, aggregator
   // If no cellFormatting rules, always use default formatter to return to original format
   // This ensures values return to their original format when cellFormatting is cleared
   // Check for all possible cases: null, undefined, empty object, empty rules array
-  const hasFormattingRules = cellFormatting &&
+  const hasFormattingRules =
+    cellFormatting &&
     typeof cellFormatting === 'object' &&
     Array.isArray(cellFormatting.rules) &&
     cellFormatting.rules.length > 0 &&
@@ -222,11 +269,11 @@ function applyCellFormatting(value, cellFormatting, defaultFormatter, aggregator
   if (matchingRule && matchingRule.format && isNumeric) {
     const format = matchingRule.format;
     const formatter = numberFormat({
-      digitsAfterDecimal: ('decimalPlaces' in format) ? format.decimalPlaces : 2,
-      thousandsSep: ('thousandsSep' in format) ? format.thousandsSep : ',',
-      decimalSep: ('decimalSep' in format) ? format.decimalSep : '.',
-      prefix: ('prefix' in format) ? format.prefix : '',
-      suffix: ('suffix' in format) ? format.suffix : '',
+      digitsAfterDecimal: 'decimalPlaces' in format ? format.decimalPlaces : 2,
+      thousandsSep: 'thousandsSep' in format ? format.thousandsSep : ',',
+      decimalSep: 'decimalSep' in format ? format.decimalSep : '.',
+      prefix: 'prefix' in format ? format.prefix : '',
+      suffix: 'suffix' in format ? format.suffix : '',
     });
     return formatter(numericValue);
   }
@@ -252,26 +299,26 @@ function makeRenderer(opts = {}) {
         hasMultipleAggregators && rowKeys.length === 0 ? [[]] : rowKeys;
       const renderedRows = hasMultipleAggregators
         ? baseRowKeys.reduce((acc, rowKey) => {
-          aggregations.forEach(agg => {
-            acc.push({
-              displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
-              actualKey: rowKey,
-              aggregationKey: agg.key,
+            aggregations.forEach(agg => {
+              acc.push({
+                displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
+                actualKey: rowKey,
+                aggregationKey: agg.key,
+              });
             });
-          });
-          return acc;
-        }, [])
+            return acc;
+          }, [])
         : baseRowKeys.map(rowKey => ({
-          displayKey: rowKey,
-          actualKey: rowKey,
-          aggregationKey: primaryAggregation.key,
-        }));
+            displayKey: rowKey,
+            actualKey: rowKey,
+            aggregationKey: primaryAggregation.key,
+          }));
       const rowKeyValues = renderedRows.map(r => r.displayKey);
       const colKeys = pivotData.getColKeys();
 
-      let valueCellColors = () => { };
-      let rowTotalColors = () => { };
-      let colTotalColors = () => { };
+      let valueCellColors = () => {};
+      let rowTotalColors = () => {};
+      let colTotalColors = () => {};
       if (opts.heatmapMode && !hasMultipleAggregators) {
         const colorScaleGenerator = this.props.tableColorScaleGenerator;
         const rowTotalValues = colKeys.map(x =>
@@ -316,14 +363,16 @@ function makeRenderer(opts = {}) {
       }
 
       // Get conditional formatting from tableOptions
-      const conditionalFormatting = this.props.tableOptions && this.props.tableOptions.conditionalFormatting
-        ? this.props.tableOptions.conditionalFormatting
-        : null;
+      const conditionalFormatting =
+        this.props.tableOptions && this.props.tableOptions.conditionalFormatting
+          ? this.props.tableOptions.conditionalFormatting
+          : null;
 
       // Get cell formatting from tableOptions
-      const cellFormatting = this.props.tableOptions && this.props.tableOptions.cellFormatting
-        ? this.props.tableOptions.cellFormatting
-        : null;
+      const cellFormatting =
+        this.props.tableOptions && this.props.tableOptions.cellFormatting
+          ? this.props.tableOptions.cellFormatting
+          : null;
 
       // Create lookup map from aggregationKey to aggregatorName
       const aggregationNameLookup = {};
@@ -333,14 +382,18 @@ function makeRenderer(opts = {}) {
 
       // Helper function to get cell style with conditional formatting
       const getCellStyle = (value, heatmapStyle = {}) => {
-        const conditionalStyle = getConditionalFormattingStyle(value, conditionalFormatting);
+        const conditionalStyle = getConditionalFormattingStyle(
+          value,
+          conditionalFormatting
+        );
         return mergeStyles(heatmapStyle, conditionalStyle);
       };
 
       // Helper function to format cell value with cell formatting rules
       const formatCellValue = (value, aggregator, aggregationKey) => {
-
-        const aggregatorName = aggregationKey ? aggregationNameLookup[aggregationKey] : null;
+        const aggregatorName = aggregationKey
+          ? aggregationNameLookup[aggregationKey]
+          : null;
 
         return applyCellFormatting(
           value,
@@ -352,7 +405,7 @@ function makeRenderer(opts = {}) {
 
       // Helper function to format label text if it's numeric
       // Used for both row and column labels
-      const formatLabel = (txt) => {
+      const formatLabel = txt => {
         // Check if txt is numeric (number or numeric string)
         // Also exclude 'null' string which is used for missing values
         if (txt === 'null' || txt === null || typeof txt === 'undefined') {
@@ -375,7 +428,12 @@ function makeRenderer(opts = {}) {
           if (isNumeric) {
             numericValue = txt;
           }
-        } else if (typeof txt === 'string' && txt.trim() !== '' && txt !== 'null' && !containsSpecialCharacters(txt)) {
+        } else if (
+          typeof txt === 'string' &&
+          txt.trim() !== '' &&
+          txt !== 'null' &&
+          !containsSpecialCharacters(txt)
+        ) {
           const parsed = parseFloat(txt.trim());
           isNumeric = !isNaN(parsed) && isFinite(parsed);
           if (isNumeric) {
@@ -383,16 +441,24 @@ function makeRenderer(opts = {}) {
           }
         }
 
-        if (isNumeric && numericValue !== null && cellFormatting && Array.isArray(cellFormatting.rules) && cellFormatting.rules.length > 0) {
+        if (
+          isNumeric &&
+          numericValue !== null &&
+          cellFormatting &&
+          Array.isArray(cellFormatting.rules) &&
+          cellFormatting.rules.length > 0
+        ) {
           const matchingRule = cellFormatting.rules[0];
           if (matchingRule && matchingRule.format) {
             const format = matchingRule.format;
             const formatter = numberFormat({
-              digitsAfterDecimal: ('decimalPlaces' in format) ? format.decimalPlaces : 2,
-              thousandsSep: ('thousandsSep' in format) ? format.thousandsSep : ',',
-              decimalSep: ('decimalSep' in format) ? format.decimalSep : '.',
-              prefix: ('prefix' in format) ? format.prefix : '',
-              suffix: ('suffix' in format) ? format.suffix : '',
+              digitsAfterDecimal:
+                'decimalPlaces' in format ? format.decimalPlaces : 2,
+              thousandsSep:
+                'thousandsSep' in format ? format.thousandsSep : ',',
+              decimalSep: 'decimalSep' in format ? format.decimalSep : '.',
+              prefix: 'prefix' in format ? format.prefix : '',
+              suffix: 'suffix' in format ? format.suffix : '',
             });
             return formatter(numericValue);
           }
@@ -404,12 +470,22 @@ function makeRenderer(opts = {}) {
 
       // Helper function to format row label text if it's numeric
       // Only formats if it's a numeric value, not aggregation labels
-      const formatRowLabel = (txt, index, isLastElement, hasMultipleAggregators, rowAttrsLength) => {
+      const formatRowLabel = (
+        txt,
+        index,
+        isLastElement,
+        hasMultipleAggregators,
+        rowAttrsLength
+      ) => {
         // Don't format the last element if it's an aggregation label (when multiple aggregators)
         // The last element is an aggregation label only if:
         // 1. There are multiple aggregators
         // 2. AND it's beyond the row attributes (index >= rowAttrsLength)
-        if (hasMultipleAggregators && isLastElement && index >= rowAttrsLength) {
+        if (
+          hasMultipleAggregators &&
+          isLastElement &&
+          index >= rowAttrsLength
+        ) {
           return txt;
         }
 
@@ -419,27 +495,27 @@ function makeRenderer(opts = {}) {
       const getClickHandler =
         this.props.tableOptions && this.props.tableOptions.clickCallback
           ? (value, rowValues, colValues) => {
-            const filters = {};
-            for (const i of Object.keys(colAttrs || {})) {
-              const attr = colAttrs[i];
-              if (colValues[i] !== null) {
-                filters[attr] = colValues[i];
+              const filters = {};
+              for (const i of Object.keys(colAttrs || {})) {
+                const attr = colAttrs[i];
+                if (colValues[i] !== null) {
+                  filters[attr] = colValues[i];
+                }
               }
-            }
-            for (const i of Object.keys(rowAttrs || {})) {
-              const attr = rowAttrs[i];
-              if (rowValues[i] !== null) {
-                filters[attr] = rowValues[i];
+              for (const i of Object.keys(rowAttrs || {})) {
+                const attr = rowAttrs[i];
+                if (rowValues[i] !== null) {
+                  filters[attr] = rowValues[i];
+                }
               }
+              return e =>
+                this.props.tableOptions.clickCallback(
+                  e,
+                  value,
+                  filters,
+                  pivotData
+                );
             }
-            return e =>
-              this.props.tableOptions.clickCallback(
-                e,
-                value,
-                filters,
-                pivotData
-              );
-          }
           : null;
 
       const handleColSort = (attr, e) => {
@@ -472,22 +548,29 @@ function makeRenderer(opts = {}) {
 
       const getSortButton = (attr, isCol) => {
         const currentSort = isCol
-          ? (this.props.colSorts && this.props.colSorts[attr])
-          : (this.props.rowSorts && this.props.rowSorts[attr]);
+          ? this.props.colSorts && this.props.colSorts[attr]
+          : this.props.rowSorts && this.props.rowSorts[attr];
         const handleSort = isCol ? handleColSort : handleRowSort;
-        let sortIcon;
-        if (isCol) {
-          // Vertical arrows for columns
-          sortIcon = currentSort === 'ASC' ? '→' : currentSort === 'DESC' ? '←' : '↔';
-        } else {
-          // Horizontal arrows for rows
-          sortIcon = currentSort === 'ASC' ? '↑' : currentSort === 'DESC' ? '↓' : '⇅';
+        let sortIcon = '';
+        if (currentSort !== null) {
+          if (isCol) {
+            sortIcon = this.props.colSortIcons[currentSort] || this.props.colSortIcons['DEFAULT'];
+          } else {
+            sortIcon = this.props.rowSortIcons[currentSort] || this.props.rowSortIcons['DEFAULT'];
+          }
         }
         return (
           <button
+            type="button"
             className="pvtSortButton"
             onClick={e => handleSort(attr, e)}
-            title={currentSort === 'ASC' ? 'Sort Descending' : currentSort === 'DESC' ? 'Clear Sort' : 'Sort Ascending'}
+            title={
+              currentSort === 'ASC'
+                ? 'Sort Descending'
+                : currentSort === 'DESC'
+                ? 'Clear Sort'
+                : 'Sort Ascending'
+            }
           >
             {sortIcon}
           </button>
@@ -497,7 +580,7 @@ function makeRenderer(opts = {}) {
       return (
         <table className="pvtTable">
           <thead>
-            {colAttrs.map(function (c, j) {
+            {colAttrs.map(function(c, j) {
               return (
                 <tr key={`colAttr${j}`}>
                   {j === 0 && rowAttrsToRender.length !== 0 && (
@@ -510,7 +593,7 @@ function makeRenderer(opts = {}) {
                     {c}
                     {getSortButton(c, true)}
                   </th>
-                  {colKeys.map(function (colKey, i) {
+                  {colKeys.map(function(colKey, i) {
                     const x = spanSize(colKeys, i, j);
                     if (x === -1) {
                       return null;
@@ -523,7 +606,7 @@ function makeRenderer(opts = {}) {
                         colSpan={x}
                         rowSpan={
                           j === colAttrs.length - 1 &&
-                            rowAttrsToRender.length !== 0
+                          rowAttrsToRender.length !== 0
                             ? 2
                             : 1
                         }
@@ -568,7 +651,7 @@ function makeRenderer(opts = {}) {
           </thead>
 
           <tbody>
-            {renderedRows.map(function (rowMeta, i) {
+            {renderedRows.map(function(rowMeta, i) {
               const totalAggregator = pivotData.getAggregator(
                 rowMeta.actualKey,
                 [],
@@ -577,13 +660,19 @@ function makeRenderer(opts = {}) {
               const displayKey = rowMeta.displayKey;
               return (
                 <tr key={`rowKeyRow${i}`}>
-                  {displayKey.map(function (txt, j) {
+                  {displayKey.map(function(txt, j) {
                     const x = spanSize(rowKeyValues, i, j);
                     if (x === -1) {
                       return null;
                     }
                     const isLastElement = j === displayKey.length - 1;
-                    const formattedTxt = formatRowLabel(txt, j, isLastElement, hasMultipleAggregators, rowAttrs.length);
+                    const formattedTxt = formatRowLabel(
+                      txt,
+                      j,
+                      isLastElement,
+                      hasMultipleAggregators,
+                      rowAttrs.length
+                    );
                     return (
                       <th
                         key={`rowKeyLabel${i}-${j}`}
@@ -591,7 +680,7 @@ function makeRenderer(opts = {}) {
                         rowSpan={x}
                         colSpan={
                           j === rowAttrsToRender.length - 1 &&
-                            colAttrs.length !== 0
+                          colAttrs.length !== 0
                             ? 2
                             : 1
                         }
@@ -600,18 +689,15 @@ function makeRenderer(opts = {}) {
                       </th>
                     );
                   })}
-                  {colKeys.map(function (colKey, j) {
+                  {colKeys.map(function(colKey, j) {
                     const aggregator = pivotData.getAggregator(
                       rowMeta.actualKey,
                       colKey,
                       rowMeta.aggregationKey
                     );
                     const value = aggregator.value();
-                    const heatmapStyle = valueCellColors(
-                      rowMeta.actualKey,
-                      colKey,
-                      value
-                    ) || {};
+                    const heatmapStyle =
+                      valueCellColors(rowMeta.actualKey, colKey, value) || {};
                     return (
                       <td
                         className="pvtVal"
@@ -622,7 +708,11 @@ function makeRenderer(opts = {}) {
                         }
                         style={getCellStyle(value, heatmapStyle)}
                       >
-                        {formatCellValue(value, aggregator, rowMeta.aggregationKey)}
+                        {formatCellValue(
+                          value,
+                          aggregator,
+                          rowMeta.aggregationKey
+                        )}
                       </td>
                     );
                   })}
@@ -641,14 +731,18 @@ function makeRenderer(opts = {}) {
                       colTotalColors(totalAggregator.value()) || {}
                     )}
                   >
-                    {formatCellValue(totalAggregator.value(), totalAggregator, rowMeta.aggregationKey)}
+                    {formatCellValue(
+                      totalAggregator.value(),
+                      totalAggregator,
+                      rowMeta.aggregationKey
+                    )}
                   </td>
                 </tr>
               );
             })}
 
             {(hasMultipleAggregators ? aggregations : [primaryAggregation]).map(
-              function (agg) {
+              function(agg) {
                 const grandTotalAggregator = pivotData.getAggregator(
                   [],
                   [],
@@ -669,7 +763,7 @@ function makeRenderer(opts = {}) {
                       {totalLabel}
                     </th>
 
-                    {colKeys.map(function (colKey, i) {
+                    {colKeys.map(function(colKey, i) {
                       const totalAggregator = pivotData.getAggregator(
                         [],
                         colKey,
@@ -682,18 +776,18 @@ function makeRenderer(opts = {}) {
                           key={`total${agg.key}-${i}`}
                           onClick={
                             getClickHandler &&
-                            getClickHandler(
-                              totalValue,
-                              [null],
-                              colKey
-                            )
+                            getClickHandler(totalValue, [null], colKey)
                           }
                           style={getCellStyle(
                             totalValue,
                             rowTotalColors(totalValue) || {}
                           )}
                         >
-                          {formatCellValue(totalValue, totalAggregator, agg.key)}
+                          {formatCellValue(
+                            totalValue,
+                            totalAggregator,
+                            agg.key
+                          )}
                         </td>
                       );
                     })}
@@ -710,7 +804,11 @@ function makeRenderer(opts = {}) {
                       className="pvtGrandTotal"
                       style={getCellStyle(grandTotalAggregator.value(), {})}
                     >
-                      {formatCellValue(grandTotalAggregator.value(), grandTotalAggregator, agg.key)}
+                      {formatCellValue(
+                        grandTotalAggregator.value(),
+                        grandTotalAggregator,
+                        agg.key
+                      )}
                     </td>
                   </tr>
                 );
@@ -730,10 +828,34 @@ function makeRenderer(opts = {}) {
   TableRenderer.defaultProps.rowSorts = {};
   TableRenderer.propTypes.tableColorScaleGenerator = PropTypes.func;
   TableRenderer.propTypes.tableOptions = PropTypes.object;
-  TableRenderer.propTypes.colSorts = PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC']));
-  TableRenderer.propTypes.rowSorts = PropTypes.objectOf(PropTypes.oneOf(['ASC', 'DESC']));
+  TableRenderer.propTypes.colSorts = PropTypes.objectOf(
+    PropTypes.oneOf(['ASC', 'DESC'])
+  );
+  TableRenderer.propTypes.rowSorts = PropTypes.objectOf(
+    PropTypes.oneOf(['ASC', 'DESC'])
+  );
   TableRenderer.propTypes.onColSort = PropTypes.func;
   TableRenderer.propTypes.onRowSort = PropTypes.func;
+  TableRenderer.defaultProps.colSortIcons = {
+    ASC: '→',
+    DESC: '←',
+    DEFAULT: '↔',
+  };
+  TableRenderer.defaultProps.rowSortIcons = {
+    ASC: '↑',
+    DESC: '↓',
+    DEFAULT: '⇅',
+  };
+  TableRenderer.propTypes.colSortIcons = PropTypes.shape({
+    ASC: PropTypes.node,
+    DESC: PropTypes.node,
+    DEFAULT: PropTypes.node,
+  });
+  TableRenderer.propTypes.rowSortIcons = PropTypes.shape({
+    ASC: PropTypes.node,
+    DESC: PropTypes.node,
+    DEFAULT: PropTypes.node,
+  });
   return TableRenderer;
 }
 
@@ -750,16 +872,16 @@ class TSVExportRenderer extends React.PureComponent {
 
     const rowEntries = hasMultipleAggregators
       ? safeRowKeys.reduce((acc, rowKey) => {
-        aggregations.forEach(agg => {
-          acc.push({ rowKey, aggregationKey: agg.key, label: agg.label });
-        });
-        return acc;
-      }, [])
+          aggregations.forEach(agg => {
+            acc.push({rowKey, aggregationKey: agg.key, label: agg.label});
+          });
+          return acc;
+        }, [])
       : safeRowKeys.map(rowKey => ({
-        rowKey,
-        aggregationKey: aggregations[0].key,
-        label: aggregations[0].label || aggregations[0].aggregatorName,
-      }));
+          rowKey,
+          aggregationKey: aggregations[0].key,
+          label: aggregations[0].label || aggregations[0].aggregatorName,
+        }));
 
     const headerRow = rowAttrs.slice();
     if (hasMultipleAggregators) {
@@ -794,7 +916,7 @@ class TSVExportRenderer extends React.PureComponent {
     return (
       <textarea
         value={result.map(r => r.join('\t')).join('\n')}
-        style={{ width: window.innerWidth / 2, height: window.innerHeight / 2 }}
+        style={{width: window.innerWidth / 2, height: window.innerHeight / 2}}
         readOnly={true}
       />
     );
@@ -806,8 +928,8 @@ TSVExportRenderer.propTypes = PivotData.propTypes;
 
 export default {
   Table: makeRenderer(),
-  'Table Heatmap': makeRenderer({ heatmapMode: 'full' }),
-  'Table Col Heatmap': makeRenderer({ heatmapMode: 'col' }),
-  'Table Row Heatmap': makeRenderer({ heatmapMode: 'row' }),
+  'Table Heatmap': makeRenderer({heatmapMode: 'full'}),
+  'Table Col Heatmap': makeRenderer({heatmapMode: 'col'}),
+  'Table Row Heatmap': makeRenderer({heatmapMode: 'row'}),
   'Exportable TSV': TSVExportRenderer,
 };

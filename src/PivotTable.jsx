@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { PivotData } from './Utilities';
+import {PivotData} from './Utilities';
 import TableRenderers from './TableRenderers';
 
 /* eslint-disable react/prop-types */

@@ -73,6 +73,16 @@ export default class App extends React.Component {
                     // Example: Auto-detect by providing sample values
                     // 'SomeColumn': ['value1', 'value2', 'value3'],
                 },
+                colSortIcons:{
+                    ASC: <div>Ngoc Nguyen</div>,
+                    DESC: '←',
+                    DEFAULT: '↔',
+                },
+                rowSortIcons:{
+                    ASC: <div>Ngoc Nguyen</div>,
+                    DESC: '↓',
+                    DEFAULT: '⇅',
+                },
                 plotlyOptions: { width: 900, height: 500 },
                 plotlyConfig: {},
                 tableOptions: {
