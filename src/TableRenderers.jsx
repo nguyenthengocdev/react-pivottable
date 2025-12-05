@@ -109,27 +109,46 @@ function evaluateCondition(value, condition) {
         numValue !== numConditionValue
       );
     case 'empty':
-      return (
-        value === null ||
-        typeof value === 'undefined' ||
-        value === '' ||
-        (typeof value === 'number' && isNaN(value))
-      );
+      // Check for null, undefined, empty string, whitespace-only strings, or NaN
+      if (value === null || value === undefined) {
+        return true;
+      }
+      if (typeof value === 'string') {
+        return value.trim() === '';
+      }
+      if (typeof value === 'number') {
+        return isNaN(value);
+      }
+      return false;
     case 'notEmpty':
-      return (
-        value !== null &&
-        typeof value !== 'undefined' &&
-        value !== '' &&
-        !(typeof value === 'number' && isNaN(value))
-      );
+      // Check that value is not null, undefined, empty/whitespace string, or NaN
+      if (value === null || value === undefined) {
+        return false;
+      }
+      if (typeof value === 'string') {
+        return value.trim() !== '';
+      }
+      if (typeof value === 'number') {
+        return !isNaN(value);
+      }
+      // Other types (boolean, object, etc.) are considered not empty
+      return true;
     case 'contains':
-      if (typeof value === 'string' && typeof conditionValue === 'string') {
-        return value.toLowerCase().includes(conditionValue.toLowerCase());
+      // Convert both values to strings for comparison
+      // This handles cases where values are numbers (from aggregators) or conditionValue is parsed as number
+      const valueStr = String(value || '');
+      const conditionValueStr = String(conditionValue || '');
+      if (valueStr && conditionValueStr) {
+        return valueStr.toLowerCase().includes(conditionValueStr.toLowerCase());
       }
       return false;
     case 'notContains':
-      if (typeof value === 'string' && typeof conditionValue === 'string') {
-        return !value.toLowerCase().includes(conditionValue.toLowerCase());
+      // Convert both values to strings for comparison
+      // This handles cases where values are numbers (from aggregators) or conditionValue is parsed as number
+      const valueStr2 = String(value || '');
+      const conditionValueStr2 = String(conditionValue || '');
+      if (valueStr2 && conditionValueStr2) {
+        return !valueStr2.toLowerCase().includes(conditionValueStr2.toLowerCase());
       }
       return true;
     default:

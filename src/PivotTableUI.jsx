@@ -410,7 +410,11 @@ export class ConditionalFormattingUI extends React.Component {
                   </button>
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div
+                  style={{marginBottom: '8px'}}
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                >
                   <label
                     style={{
                       display: 'block',
@@ -424,11 +428,22 @@ export class ConditionalFormattingUI extends React.Component {
                     value={rule.condition.type || 'greaterThan'}
                     onChange={e => {
                       e.stopPropagation();
-                      this.updateRule(index, 'condition.type', e.target.value);
-                      // Reset value if condition type doesn't need it
-                      if (!needsValue(e.target.value)) {
-                        this.updateRule(index, 'condition.value', null);
+                      const newType = e.target.value;
+                      const cf = this.getConditionalFormatting();
+                      const newRules = cf.rules.slice();
+                      const newCondition = Object.assign({}, newRules[index].condition, {
+                        type: newType,
+                      });
+                      // Remove value field if condition type doesn't need it
+                      if (!needsValue(newType)) {
+                        delete newCondition.value;
                       }
+                      newRules[index] = Object.assign({}, newRules[index], {
+                        condition: newCondition,
+                      });
+                      this.updateConditionalFormatting({
+                        rules: newRules,
+                      });
                     }}
                     style={{width: '100%', padding: '4px'}}
                   >
@@ -531,7 +546,11 @@ export class ConditionalFormattingUI extends React.Component {
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div
+                  style={{marginBottom: '8px'}}
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                >
                   <label
                     style={{
                       display: 'block',
@@ -563,7 +582,11 @@ export class ConditionalFormattingUI extends React.Component {
                   </select>
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div
+                  style={{marginBottom: '8px'}}
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                >
                   <label
                     style={{
                       display: 'block',
