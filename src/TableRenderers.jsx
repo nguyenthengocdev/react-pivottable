@@ -274,6 +274,7 @@ function applyCellFormatting(
       decimalSep: 'decimalSep' in format ? format.decimalSep : '.',
       prefix: 'prefix' in format ? format.prefix : '',
       suffix: 'suffix' in format ? format.suffix : '',
+      showOriginal: 'showOriginal' in format ? format.showOriginal : false,
     });
     return formatter(numericValue);
   }
@@ -528,6 +529,7 @@ function makeRenderer(opts = {}) {
               decimalSep: 'decimalSep' in format ? format.decimalSep : '.',
               prefix: 'prefix' in format ? format.prefix : '',
               suffix: 'suffix' in format ? format.suffix : '',
+              showOriginal: 'showOriginal' in format ? format.showOriginal : false,
             });
             return formatter(numericValue);
           }

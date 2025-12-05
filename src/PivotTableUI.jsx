@@ -791,14 +791,14 @@ export class CellFormattingUI extends React.Component {
                       fontSize: '11px',
                     }}
                   >
-                    Thousand Separator:
+                    Thousand Separator (empty = no separator, decimal formatting still applies):
                   </label>
                   <input
                     type="text"
                     value={
                       rule.format && 'thousandsSep' in rule.format
                         ? rule.format.thousandsSep
-                        : ','
+                        : ''
                     }
                     onChange={e => {
                       e.stopPropagation();
@@ -928,6 +928,36 @@ export class CellFormattingUI extends React.Component {
                     placeholder=""
                     style={{width: '100%', padding: '4px'}}
                   />
+                </div>
+
+                <div style={{marginBottom: '8px'}}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '4px',
+                      fontSize: '11px',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        rule.format && 'showOriginal' in rule.format
+                          ? rule.format.showOriginal
+                          : false
+                      }
+                      onChange={e => {
+                        e.stopPropagation();
+                        this.updateRule(
+                          index,
+                          'format.showOriginal',
+                          e.target.checked
+                        );
+                      }}
+                      style={{marginRight: '6px'}}
+                    />
+                    Show Original Value (no formatting)
+                  </label>
                 </div>
               </div>
             ))}

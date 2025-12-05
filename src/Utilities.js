@@ -32,12 +32,26 @@ const numberFormat = function(opts_in) {
     decimalSep: '.',
     prefix: '',
     suffix: '',
+    showOriginal: false,
   };
   const opts = Object.assign({}, defaults, opts_in);
   return function(x) {
     if (isNaN(x) || !isFinite(x)) {
       return '';
     }
+    // Show completely original value if showOriginal is true
+    if (opts.showOriginal) {
+      return String(opts.scaler * x);
+    }
+    // When thousandsSep is empty, apply decimal formatting but skip thousand separator
+    if (opts.thousandsSep === '') {
+      const scaledValue = opts.scaler * x;
+      const fixedValue = scaledValue.toFixed(opts.digitsAfterDecimal);
+      // Apply decimal separator if needed
+      const result = fixedValue.replace('.', opts.decimalSep);
+      return `${opts.prefix}${result}${opts.suffix}`;
+    }
+    // Normal formatting with thousand separator
     const result = addSeparators(
       (opts.scaler * x).toFixed(opts.digitsAfterDecimal),
       opts.thousandsSep,

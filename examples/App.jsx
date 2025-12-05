@@ -137,11 +137,12 @@ export default class App extends React.Component {
                         rules: [
                             {
                                 format: {
-                                    thousandsSep: ',',      // Thousand separator (e.g., 1,000)
+                                    thousandsSep: '',      // Thousand separator (e.g., 1,000). Use '' (empty string) to skip separator (decimal formatting still applies)
                                     decimalSep: '.',        // Decimal separator (e.g., 1.23)
                                     decimalPlaces: 2,       // Number of decimal places (0-9)
                                     prefix: '',            // Prefix (e.g., $, €, ¥)
-                                    suffix: ''              // Suffix (e.g., %, units)
+                                    suffix: '',             // Suffix (e.g., %, units)
+                                    showOriginal: false     // Set to true to show original value without any formatting (no decimal places, separators, prefix, or suffix)
                                 }
                             }
                             // You can add multiple rules, but only the first one will be used
