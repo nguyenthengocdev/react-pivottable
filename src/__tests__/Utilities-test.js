@@ -451,4 +451,107 @@ describe('  utils', function () {
       it("doesn't bin objects", () => expect(binner({ x: { a: 1 } })).toBeNaN());
     });
   });
+
+  describe('aggregation grouping', function () {
+    describe('.groupAggregationsByType()', function () {
+      it('returns object with default Count aggregation when no aggregations provided', function () {
+        // Note: PivotData normalizes empty aggregations to a default Count
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations: [],
+        });
+        const grouped = pd.groupAggregationsByType();
+
+        expect(Object.keys(grouped)).toEqual(['Count']);
+        expect(grouped['Count']).toHaveLength(1);
+      });
+
+      it('groups aggregations by aggregatorName', function () {
+        const aggregations = [
+          aggregationConfig('Count', ['name'], 'count-name'),
+          aggregationConfig('Count', ['gender'], 'count-gender'),
+          aggregationConfig('Sum', ['trials'], 'sum-trials'),
+        ];
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations,
+        });
+        const grouped = pd.groupAggregationsByType();
+
+        expect(Object.keys(grouped)).toEqual(['Count', 'Sum']);
+        expect(grouped['Count']).toHaveLength(2);
+        expect(grouped['Sum']).toHaveLength(1);
+        expect(grouped['Count'][0].key).toBe('count-name');
+        expect(grouped['Count'][1].key).toBe('count-gender');
+        expect(grouped['Sum'][0].key).toBe('sum-trials');
+      });
+
+      it('handles single aggregation', function () {
+        const aggregations = [
+          aggregationConfig('Count', ['name'], 'count-name'),
+        ];
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations,
+        });
+        const grouped = pd.groupAggregationsByType();
+
+        expect(Object.keys(grouped)).toEqual(['Count']);
+        expect(grouped['Count']).toHaveLength(1);
+        expect(grouped['Count'][0].key).toBe('count-name');
+      });
+
+      it('handles multiple different aggregator types', function () {
+        const aggregations = [
+          aggregationConfig('Count', ['name'], 'count-name'),
+          aggregationConfig('Sum', ['trials'], 'sum-trials'),
+          aggregationConfig('Average', ['successes'], 'avg-successes'),
+        ];
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations,
+        });
+        const grouped = pd.groupAggregationsByType();
+
+        expect(Object.keys(grouped)).toEqual(['Count', 'Sum', 'Average']);
+        expect(grouped['Count']).toHaveLength(1);
+        expect(grouped['Sum']).toHaveLength(1);
+        expect(grouped['Average']).toHaveLength(1);
+      });
+    });
+
+    describe('.getAggregationsByType()', function () {
+      it('returns aggregations for specific aggregator type', function () {
+        const aggregations = [
+          aggregationConfig('Count', ['name'], 'count-name'),
+          aggregationConfig('Count', ['gender'], 'count-gender'),
+          aggregationConfig('Sum', ['trials'], 'sum-trials'),
+        ];
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations,
+        });
+        const countAggs = pd.getAggregationsByType('Count');
+        const sumAggs = pd.getAggregationsByType('Sum');
+
+        expect(countAggs).toHaveLength(2);
+        expect(countAggs.every(agg => agg.aggregatorName === 'Count')).toBe(true);
+        expect(sumAggs).toHaveLength(1);
+        expect(sumAggs[0].aggregatorName).toBe('Sum');
+      });
+
+      it('returns empty array for non-existent aggregator type', function () {
+        const aggregations = [
+          aggregationConfig('Count', ['name'], 'count-name'),
+        ];
+        const pd = new utils.PivotData({
+          data: fixtureData,
+          aggregations,
+        });
+        const sumAggs = pd.getAggregationsByType('Sum');
+
+        expect(sumAggs).toEqual([]);
+      });
+    });
+  });
 });

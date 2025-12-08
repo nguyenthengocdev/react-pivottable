@@ -1004,6 +1004,32 @@ class PivotData {
     return Object.assign({}, this.primaryAggregation);
   }
 
+  /**
+   * Groups aggregations by their aggregatorName
+   * @returns {Object} Object mapping aggregator names to arrays of aggregations
+   * Example: { 'Count': [agg1, agg2], 'Sum': [agg3] }
+   */
+  groupAggregationsByType() {
+    const grouped = {};
+    this.aggregations.forEach(agg => {
+      const aggName = agg.aggregatorName;
+      if (!grouped[aggName]) {
+        grouped[aggName] = [];
+      }
+      grouped[aggName].push(agg);
+    });
+    return grouped;
+  }
+
+  /**
+   * Gets aggregations for a specific aggregator type
+   * @param {string} aggregatorName - The aggregator name (e.g., 'Count', 'Sum')
+   * @returns {Array} Array of aggregation configurations
+   */
+  getAggregationsByType(aggregatorName) {
+    return this.aggregations.filter(agg => agg.aggregatorName === aggregatorName);
+  }
+
   normalizeAggregations() {
     const defaultAggregatorName = Object.keys(this.props.aggregators)[0];
     const aggregationsProvided =

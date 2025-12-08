@@ -44,12 +44,18 @@ export default class App extends React.Component {
             filename: 'Sample Dataset: Tips',
             pivotState: {
                 data: tips,
-                rows: [],
+                rows: ['salesperson', 'date', 'product', 'region', 'unitsSold', 'revenue'],
                 cols: [],
                 aggregatorName: 'Count',
                 vals: [],
-                aggregations: [],
-                rendererName: 'Table',
+                // Demo: Multiple aggregations grouped by type
+                aggregations: [
+                    // { key: 'count-tips', aggregatorName: 'Count', vals: ['Employee Ref'], label: 'Count of Employee Ref' },
+                    // { key: 'sum-total', aggregatorName: 'Count', vals: ['Claim Amount'], label: 'Count by Claim Amount' },
+                    { key: 'sum-claim', aggregatorName: 'Sum', vals: ['unitsSold'], label: 'Sum by unitsSold' },
+                    { key: 'sum-2', aggregatorName: 'Sum', vals: ['revenue'], label: 'Sum by revenue' },
+                ],
+                rendererName: 'Grouped Columns by Type',
                 // Custom sorters example:
                 // You can specify sorters in multiple ways:
                 // 1. By data type name (string): 'number', 'date', 'string', 'stringCaseInsensitive', 'natural'
@@ -73,12 +79,12 @@ export default class App extends React.Component {
                     // Example: Auto-detect by providing sample values
                     // 'SomeColumn': ['value1', 'value2', 'value3'],
                 },
-                colSortIcons:{
+                colSortIcons: {
                     ASC: <div>Ngoc Nguyen</div>,
                     DESC: '←',
                     DEFAULT: '↔',
                 },
-                rowSortIcons:{
+                rowSortIcons: {
                     ASC: <div>Ngoc Nguyen</div>,
                     DESC: '↓',
                     DEFAULT: '⇅',
@@ -226,6 +232,16 @@ export default class App extends React.Component {
                 </div>
                 <div className="row">
                     <h2 className="text-center">{this.state.filename}</h2>
+                    <div className="text-center" style={{ padding: '10px', backgroundColor: '#f0f8ff', borderRadius: '5px', margin: '10px 0' }}>
+                        <p><strong>New Feature Demo:</strong> Multiple aggregations grouped by type with total values!</p>
+                        <p>This demo shows 6 aggregations grouped into 3 charts by their function type, displaying the grand total for each:</p>
+                        <ul style={{ textAlign: 'left', display: 'inline-block' }}>
+                            <li><strong>Count Chart:</strong> Total Count of Tips, Total Count by Gender</li>
+                            <li><strong>Average Chart:</strong> Total Average Bill, Total Average Tip</li>
+                            <li><strong>Sum Chart:</strong> Total Sum of Bills, Total Sum of Tips</li>
+                        </ul>
+                        <p>Each bar shows the grand total for that aggregation. Try switching between different chart types!</p>
+                    </div>
                     <br />
 
                     <PivotTableUISmartWrapper {...this.state.pivotState} />
