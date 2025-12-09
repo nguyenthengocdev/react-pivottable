@@ -1,9 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {PivotData, numberFormat} from './Utilities';
+import { PivotData, numberFormat } from './Utilities';
 
 // helper function for setting row/col-span in pivotTableRenderer
-const spanSize = function(arr, i, j) {
+const spanSize = function (arr, i, j) {
   let x;
   if (i !== 0) {
     let asc, end;
@@ -48,7 +48,7 @@ function redColorScaleGenerator(values) {
   return x => {
     // eslint-disable-next-line no-magic-numbers
     const nonRed = 255 - Math.round((255 * (x - min)) / (max - min));
-    return {backgroundColor: `rgb(255,${nonRed},${nonRed})`};
+    return { backgroundColor: `rgb(255,${nonRed},${nonRed})` };
   };
 }
 
@@ -58,7 +58,7 @@ function evaluateCondition(value, condition) {
     return false;
   }
 
-  const {type, value: conditionValue} = condition;
+  const { type, value: conditionValue } = condition;
   const numValue = typeof value === 'number' ? value : parseFloat(value);
   const numConditionValue =
     typeof conditionValue === 'number'
@@ -216,7 +216,7 @@ function shouldSkipFormattingForAggregation(aggregatorName) {
 }
 
 // Apply cell formatting rules to a value
-function applyCellFormatting(
+export function applyCellFormatting(
   value,
   cellFormatting,
   defaultFormatter,
@@ -324,8 +324,8 @@ function makeRenderer(opts = {}) {
       const hasColumnAttributes = colAttrsToRender.length > 0;
       const showTotalsColumn = !isColumnAggregationMode;
       const shouldRenderRowHeaderPlaceholder = rowAttrsToRender.length !== 0;
-      
-  
+
+
       const rowKeys = pivotData.getRowKeys();
       const baseRowKeys =
         hasMultipleAggregators && !isColumnAggregationMode && rowKeys.length === 0
@@ -334,40 +334,40 @@ function makeRenderer(opts = {}) {
       const renderedRows =
         hasMultipleAggregators && !isColumnAggregationMode
           ? baseRowKeys.reduce((acc, rowKey) => {
-              aggregations.forEach(agg => {
-                acc.push({
-                  displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
-                  actualKey: rowKey,
-                  aggregationKey: agg.key,
-                });
+            aggregations.forEach(agg => {
+              acc.push({
+                displayKey: rowKey.concat([agg.label || agg.aggregatorName]),
+                actualKey: rowKey,
+                aggregationKey: agg.key,
               });
-              return acc;
-            }, [])
+            });
+            return acc;
+          }, [])
           : baseRowKeys.map(rowKey => ({
-              displayKey: rowKey,
-              actualKey: rowKey,
-              aggregationKey: primaryAggregation.key,
-            }));
+            displayKey: rowKey,
+            actualKey: rowKey,
+            aggregationKey: primaryAggregation.key,
+          }));
       const rowKeyValues = renderedRows.map(r => r.displayKey);
       const colKeys = pivotData.getColKeys();
       const baseColKeys =
         isColumnAggregationMode && colKeys.length === 0 ? [[]] : colKeys;
       const columnMeta = isColumnAggregationMode
         ? baseColKeys.reduce((acc, colKey) => {
-            aggregations.forEach(agg => {
-              acc.push({
-                displayKey: colKey.concat([agg.label || agg.aggregatorName]),
-                actualKey: colKey,
-                aggregationKey: agg.key,
-              });
+          aggregations.forEach(agg => {
+            acc.push({
+              displayKey: colKey.concat([agg.label || agg.aggregatorName]),
+              actualKey: colKey,
+              aggregationKey: agg.key,
             });
-            return acc;
-          }, [])
+          });
+          return acc;
+        }, [])
         : colKeys.map(colKey => ({
-            displayKey: colKey,
-            actualKey: colKey,
-            aggregationKey: primaryAggregation.key,
-          }));
+          displayKey: colKey,
+          actualKey: colKey,
+          aggregationKey: primaryAggregation.key,
+        }));
       const colKeyValues = columnMeta.map(col => col.displayKey);
 
       const renderAggregatorHeaderCells = () =>
@@ -398,7 +398,7 @@ function makeRenderer(opts = {}) {
           // When there are no column attributes, rowSpan is 1
           const rowSpan = hasColumnAttributes && rowAttrsToRender.length !== 0 ? 1 : 1;
 
-      
+
           return (
             <th
               className="pvtColLabel"
@@ -411,9 +411,9 @@ function makeRenderer(opts = {}) {
           );
         });
 
-      let valueCellColors = () => {};
-      let rowTotalColors = () => {};
-      let colTotalColors = () => {};
+      let valueCellColors = () => { };
+      let rowTotalColors = () => { };
+      let colTotalColors = () => { };
       if (opts.heatmapMode && !hasMultipleAggregators) {
         const colorScaleGenerator = this.props.tableColorScaleGenerator;
         const rowTotalValues = colKeys.map(x =>
@@ -585,27 +585,27 @@ function makeRenderer(opts = {}) {
       const getClickHandler =
         tableOptions && tableOptions.clickCallback
           ? (value, rowValues, colValues) => {
-              const filters = {};
-              for (const i of Object.keys(colAttrs || {})) {
-                const attr = colAttrs[i];
-                if (colValues[i] !== null) {
-                  filters[attr] = colValues[i];
-                }
+            const filters = {};
+            for (const i of Object.keys(colAttrs || {})) {
+              const attr = colAttrs[i];
+              if (colValues[i] !== null) {
+                filters[attr] = colValues[i];
               }
-              for (const i of Object.keys(rowAttrs || {})) {
-                const attr = rowAttrs[i];
-                if (rowValues[i] !== null) {
-                  filters[attr] = rowValues[i];
-                }
-              }
-              return e =>
-                tableOptions.clickCallback(
-                  e,
-                  value,
-                  filters,
-                  pivotData
-                );
             }
+            for (const i of Object.keys(rowAttrs || {})) {
+              const attr = rowAttrs[i];
+              if (rowValues[i] !== null) {
+                filters[attr] = rowValues[i];
+              }
+            }
+            return e =>
+              tableOptions.clickCallback(
+                e,
+                value,
+                filters,
+                pivotData
+              );
+          }
           : null;
 
       const handleColSort = (attr, e) => {
@@ -658,8 +658,8 @@ function makeRenderer(opts = {}) {
               currentSort === 'ASC'
                 ? 'Sort Descending'
                 : currentSort === 'DESC'
-                ? 'Clear Sort'
-                : 'Sort Ascending'
+                  ? 'Clear Sort'
+                  : 'Sort Ascending'
             }
           >
             {sortIcon}
@@ -670,20 +670,20 @@ function makeRenderer(opts = {}) {
       const totalRowAggregations = isColumnAggregationMode
         ? [primaryAggregation]
         : hasMultipleAggregators
-        ? aggregations
-        : [primaryAggregation];
+          ? aggregations
+          : [primaryAggregation];
       const totalsLabelText = 'Totals';
 
       return (
         <table className="pvtTable">
           <thead>
-            {colAttrsToRender.map(function(c, j) {
-              
+            {colAttrsToRender.map(function (c, j) {
+
               return (
                 <tr key={`colAttr${j}`}>
-                  {shouldRenderRowHeaderPlaceholder && (isColumnAggregationMode || j === 0 ) && !(isColumnAggregationMode && hasColumnAttributes &&rowAttrsToRender.length ===1) && (
+                  {shouldRenderRowHeaderPlaceholder && (isColumnAggregationMode || j === 0) && !(isColumnAggregationMode && hasColumnAttributes && rowAttrsToRender.length === 1) && (
                     <th
-                      colSpan={isColumnAggregationMode && hasColumnAttributes ?rowAttrsToRender.length -1 : rowAttrsToRender.length}
+                      colSpan={isColumnAggregationMode && hasColumnAttributes ? rowAttrsToRender.length - 1 : rowAttrsToRender.length}
                       rowSpan={
                         isColumnAggregationMode && hasColumnAttributes
                           ? 1 // in column mode, only span this header row
@@ -697,9 +697,9 @@ function makeRenderer(opts = {}) {
                       {colAttrs.includes(c) && getSortButton(c, true)}
                     </th>
                   ) : null}
-                  {colKeyValues.map(function(colKey, i) {
+                  {colKeyValues.map(function (colKey, i) {
                     const x = spanSize(colKeyValues, i, j);
-                    
+
                     if (x === -1) {
                       return null;
                     }
@@ -712,8 +712,8 @@ function makeRenderer(opts = {}) {
                         colSpan={x}
                         rowSpan={
                           j === colAttrsToRender.length - 1 &&
-                          rowAttrsToRender.length !== 0 &&
-                          !isColumnAggregationMode
+                            rowAttrsToRender.length !== 0 &&
+                            !isColumnAggregationMode
                             ? 2
                             : 1
                         }
@@ -781,7 +781,7 @@ function makeRenderer(opts = {}) {
           </thead>
 
           <tbody>
-            {renderedRows.map(function(rowMeta, i) {
+            {renderedRows.map(function (rowMeta, i) {
               const totalAggregator = pivotData.getAggregator(
                 rowMeta.actualKey,
                 [],
@@ -790,7 +790,7 @@ function makeRenderer(opts = {}) {
               const displayKey = rowMeta.displayKey;
               return (
                 <tr key={`rowKeyRow${i}`}>
-                  {displayKey.map(function(txt, j) {
+                  {displayKey.map(function (txt, j) {
                     const x = spanSize(rowKeyValues, i, j);
                     if (x === -1) {
                       return null;
@@ -810,8 +810,8 @@ function makeRenderer(opts = {}) {
                         rowSpan={x}
                         colSpan={
                           showTotalsColumn &&
-                          j === rowAttrsToRender.length - 1 &&
-                          colAttrsToRender.length !== 0
+                            j === rowAttrsToRender.length - 1 &&
+                            colAttrsToRender.length !== 0
                             ? 2
                             : 1
                         }
@@ -820,7 +820,7 @@ function makeRenderer(opts = {}) {
                       </th>
                     );
                   })}
-                  {columnMeta.map(function(colMeta, j) {
+                  {columnMeta.map(function (colMeta, j) {
                     const aggregationKeyForCell = isColumnAggregationMode
                       ? colMeta.aggregationKey
                       : rowMeta.aggregationKey;
@@ -878,85 +878,85 @@ function makeRenderer(opts = {}) {
               );
             })}
 
-            {totalRowAggregations.map(function(agg) {
-                const grandTotalAggregator = pivotData.getAggregator(
-                  [],
-                  [],
-                  isColumnAggregationMode ? primaryAggregation.key : agg.key
-                );
-                const totalLabel =
-                  hasMultipleAggregators && !isColumnAggregationMode
-                    ? `Totals – ${agg.label || agg.aggregatorName}`
-                    : totalsLabelText;
-                return (
-                  <tr key={`totalRow-${agg.key}`}>
-                    <th
-                      className="pvtTotalLabel"
-                      colSpan={
-                        rowAttrsToRender.length +
-                        (colAttrs.length === 0 ||
+            {totalRowAggregations.map(function (agg) {
+              const grandTotalAggregator = pivotData.getAggregator(
+                [],
+                [],
+                isColumnAggregationMode ? primaryAggregation.key : agg.key
+              );
+              const totalLabel =
+                hasMultipleAggregators && !isColumnAggregationMode
+                  ? `Totals – ${agg.label || agg.aggregatorName}`
+                  : totalsLabelText;
+              return (
+                <tr key={`totalRow-${agg.key}`}>
+                  <th
+                    className="pvtTotalLabel"
+                    colSpan={
+                      rowAttrsToRender.length +
+                      (colAttrs.length === 0 ||
                         (isColumnAggregationMode && hasColumnAttributes)
-                          ? 0
-                          : 1)
-                      }
-                    >
-                      {totalLabel}
-                    </th>
+                        ? 0
+                        : 1)
+                    }
+                  >
+                    {totalLabel}
+                  </th>
 
-                    {columnMeta.map(function(colMeta, i) {
-                      const totalAggregator = pivotData.getAggregator(
-                        [],
-                        colMeta.actualKey,
-                        isColumnAggregationMode ? colMeta.aggregationKey : agg.key
-                      );
-                      const totalValue = totalAggregator.value();
-                      return (
-                        <td
-                          className="pvtTotal"
-                          key={`total${agg.key}-${i}`}
-                          onClick={
-                            getClickHandler &&
-                            getClickHandler(totalValue, [null], colMeta.actualKey)
-                          }
-                          style={getCellStyle(
-                            totalValue,
-                            rowTotalColors(totalValue) || {}
-                          )}
-                        >
-                          {formatCellValue(
-                            totalValue,
-                            totalAggregator,
-                            agg.key
-                          )}
-                        </td>
-                      );
-                    })}
-
-                    {showTotalsColumn && (
+                  {columnMeta.map(function (colMeta, i) {
+                    const totalAggregator = pivotData.getAggregator(
+                      [],
+                      colMeta.actualKey,
+                      isColumnAggregationMode ? colMeta.aggregationKey : agg.key
+                    );
+                    const totalValue = totalAggregator.value();
+                    return (
                       <td
+                        className="pvtTotal"
+                        key={`total${agg.key}-${i}`}
                         onClick={
                           getClickHandler &&
-                          getClickHandler(
-                            grandTotalAggregator.value(),
-                            [null],
-                            [null]
-                          )
+                          getClickHandler(totalValue, [null], colMeta.actualKey)
                         }
-                        className="pvtGrandTotal"
-                        style={getCellStyle(grandTotalAggregator.value(), {})}
+                        style={getCellStyle(
+                          totalValue,
+                          rowTotalColors(totalValue) || {}
+                        )}
                       >
                         {formatCellValue(
-                          grandTotalAggregator.value(),
-                          grandTotalAggregator,
-                          isColumnAggregationMode
-                            ? primaryAggregation.key
-                            : agg.key
+                          totalValue,
+                          totalAggregator,
+                          agg.key
                         )}
                       </td>
-                    )}
-                  </tr>
-                );
-              })}
+                    );
+                  })}
+
+                  {showTotalsColumn && (
+                    <td
+                      onClick={
+                        getClickHandler &&
+                        getClickHandler(
+                          grandTotalAggregator.value(),
+                          [null],
+                          [null]
+                        )
+                      }
+                      className="pvtGrandTotal"
+                      style={getCellStyle(grandTotalAggregator.value(), {})}
+                    >
+                      {formatCellValue(
+                        grandTotalAggregator.value(),
+                        grandTotalAggregator,
+                        isColumnAggregationMode
+                          ? primaryAggregation.key
+                          : agg.key
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       );
@@ -1015,16 +1015,16 @@ class TSVExportRenderer extends React.PureComponent {
 
     const rowEntries = hasMultipleAggregators
       ? safeRowKeys.reduce((acc, rowKey) => {
-          aggregations.forEach(agg => {
-            acc.push({rowKey, aggregationKey: agg.key, label: agg.label});
-          });
-          return acc;
-        }, [])
+        aggregations.forEach(agg => {
+          acc.push({ rowKey, aggregationKey: agg.key, label: agg.label });
+        });
+        return acc;
+      }, [])
       : safeRowKeys.map(rowKey => ({
-          rowKey,
-          aggregationKey: aggregations[0].key,
-          label: aggregations[0].label || aggregations[0].aggregatorName,
-        }));
+        rowKey,
+        aggregationKey: aggregations[0].key,
+        label: aggregations[0].label || aggregations[0].aggregatorName,
+      }));
 
     const headerRow = rowAttrs.slice();
     if (hasMultipleAggregators) {
@@ -1059,7 +1059,7 @@ class TSVExportRenderer extends React.PureComponent {
     return (
       <textarea
         value={result.map(r => r.join('\t')).join('\n')}
-        style={{width: window.innerWidth / 2, height: window.innerHeight / 2}}
+        style={{ width: window.innerWidth / 2, height: window.innerHeight / 2 }}
         readOnly={true}
       />
     );
@@ -1071,8 +1071,8 @@ TSVExportRenderer.propTypes = PivotData.propTypes;
 
 export default {
   Table: makeRenderer(),
-  'Table Heatmap': makeRenderer({heatmapMode: 'full'}),
-  'Table Col Heatmap': makeRenderer({heatmapMode: 'col'}),
-  'Table Row Heatmap': makeRenderer({heatmapMode: 'row'}),
+  'Table Heatmap': makeRenderer({ heatmapMode: 'full' }),
+  'Table Col Heatmap': makeRenderer({ heatmapMode: 'col' }),
+  'Table Row Heatmap': makeRenderer({ heatmapMode: 'row' }),
   'Exportable TSV': TSVExportRenderer,
 };

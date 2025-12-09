@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { PivotData } from './Utilities';
+import { applyCellFormatting } from './TableRenderers';
 
 const CHART_WIDTH_RATIO = 1.5; // Ratio to scale down from full window width
 const CHART_HEIGHT_RATIO = 1.4; // Ratio to scale down from full window height
@@ -25,9 +26,9 @@ function combineCategoryLabels(categoryKey, datumKey) {
   const categoryLabel = categoryKey.join(' ') || '';
   const datumLabel = datumKey.join(' ') || '';
 
-  if (categoryLabel && datumLabel) {
-    return `${categoryLabel} - ${datumLabel}`;
-  }
+  // if (categoryLabel && datumLabel) {
+  //   return `${categoryLabel} - ${datumLabel}`;
+  // }
   return categoryLabel || datumLabel || ' ';
 }
 
@@ -139,26 +140,66 @@ function makeRenderer(
       const data = traceKeys.map(traceKey => {
         const values = [];
         const labels = [];
+        const textValues = [];
+
         for (const datumKey of datumKeys) {
-          const val = parseFloat(
-            pivotData
-              .getAggregator(
-                transpose ? datumKey : traceKey,
-                transpose ? traceKey : datumKey
-              )
-              .value()
+          const aggregator = pivotData.getAggregator(
+            transpose ? datumKey : traceKey,
+            transpose ? traceKey : datumKey
+          );
+          const val = parseFloat(aggregator.value());
+          // Get cell formatting from plotlyOptions (similar to tableOptions)
+          const cellFormatting = (this.props.plotlyOptions && this.props.plotlyOptions.cellFormatting) || null;
+
+          // Apply cell formatting to the formatted value
+          const finalFormattedValue = applyCellFormatting(
+            aggregator.value(),
+            cellFormatting,
+            aggregator.format.bind(aggregator),
+            aggregatorName
           );
           values.push(isFinite(val) ? val : null);
           labels.push(datumKey.join('-') || ' ');
+          textValues.push(finalFormattedValue);
         }
-        const trace = { name: traceKey.join('-') || fullAggName };
+
+        const trace = {
+          name: traceKey.join('-') || fullAggName,
+          text: textValues,
+        };
+
         if (traceOptions.type === 'pie') {
           trace.values = values;
           trace.labels = labels.length > 1 ? labels : [fullAggName];
+          trace.hovertemplate = '<b>%{label}</b><br>' + fullAggName + '<br><b>%{value}</b><extra></extra>';
+          trace.textinfo = 'value';
+          trace.textposition = 'inside';
         } else {
           trace.x = transpose ? values : labels;
           trace.y = transpose ? labels : values;
+          trace.hovertemplate = transpose
+            ? '<b>%{y}</b><br>' + fullAggName + '<br><b>%{x}</b><extra></extra>'
+            : '<b>%{x}</b><br>' + fullAggName + '<br><b>%{y}</b><extra></extra>';
+
+          // Configure text display based on chart type
+          if (traceOptions.type === 'bar') {
+            trace.textposition = traceOptions.orientation === 'h' ? 'middle right' : 'outside';
+            trace.textmode = 'text';
+          } else if (traceOptions.mode && traceOptions.mode.includes('lines')) {
+            trace.textposition = 'top center';
+            trace.textmode = 'lines+markers+text'; // Show text on markers for line charts
+          } else if (traceOptions.mode === 'markers') {
+            trace.textposition = 'middle right';
+            trace.textmode = 'text+markers'; // Show text with markers
+          } else if (traceOptions.stackgroup) {
+            trace.textposition = 'middle center';
+            trace.textmode = 'text';
+          } else {
+            trace.textposition = 'outside';
+            trace.textmode = 'text';
+          }
         }
+
         return Object.assign(trace, traceOptions);
       });
 
@@ -242,18 +283,16 @@ function createPieCategoryTrace(
   categoryKeys,
   datumKeys,
   subplotIndex,
-  traceOptions
+  traceOptions,
+  cellFormatting = null
 ) {
   const values = [];
   const labels = [];
 
   for (const categoryKey of categoryKeys) {
     for (const datumKey of datumKeys) {
-      const val = parseFloat(
-        pivotData
-          .getAggregator(categoryKey, datumKey, aggregation.key)
-          .value()
-      );
+      const aggregator = pivotData.getAggregator(categoryKey, datumKey, aggregation.key);
+      const val = parseFloat(aggregator.value());
       if (isFinite(val) && val !== null) {
         values.push(val);
         labels.push(combineCategoryLabels(categoryKey, datumKey));
@@ -261,18 +300,35 @@ function createPieCategoryTrace(
     }
   }
 
+  const textValues = [];
+  for (const categoryKey of categoryKeys) {
+    for (const datumKey of datumKeys) {
+      const aggregator = pivotData.getAggregator(categoryKey, datumKey, aggregation.key);
+
+      const finalFormattedValue = applyCellFormatting(
+        aggregator.value(),
+        cellFormatting,
+        aggregator.format.bind(aggregator),
+        aggregation.aggregatorName
+      );
+
+      textValues.push(finalFormattedValue);
+    }
+  }
+
   const trace = {
     name: aggregation.label || aggregation.key,
     values: values.length > 0 ? values : [0],
     labels: labels.length > 0 ? labels : ['No Data'],
+    text: textValues.length > 0 ? textValues : ['No Data'],
     title: {
       text: aggregation.label || aggregation.key,
     },
-    hovertemplate: '<b>Type:</b> %{label}<br><b>Count:</b> %{value}<extra></extra>',
+    hovertemplate: '<b>%{label}</b><br>' + (aggregation.label || aggregation.key) + '<br><b>%{text}</b><extra></extra>',
   };
 
   const mergedTrace = Object.assign({}, traceOptions, trace);
-  mergedTrace.textinfo = 'value';
+  mergedTrace.textinfo = 'text';
   mergedTrace.textposition = 'inside';
 
   return mergedTrace;
@@ -287,7 +343,8 @@ function createCategoryDataTraces(
   categoryKeys,
   datumKeys,
   groupIndex,
-  traceOptions
+  traceOptions,
+  cellFormatting = null
 ) {
   const traces = [];
 
@@ -299,13 +356,42 @@ function createCategoryDataTraces(
       aggregation.key
     );
 
+    // Get formatted text values for display
+    const textValues = [];
+    for (const categoryKey of categoryKeys) {
+      for (const datumKey of datumKeys) {
+        const aggregator = pivotData.getAggregator(categoryKey, datumKey, aggregation.key);
+        const finalFormattedValue = applyCellFormatting(
+          aggregator.value(),
+          cellFormatting,
+          aggregator.format.bind(aggregator),
+          aggregation.aggregatorName
+        );
+        textValues.push(finalFormattedValue);
+      }
+    }
+
     const trace = {
       name: aggregation.label || aggregation.key,
       xaxis: `x${groupIndex + 1}`,
       yaxis: `y${groupIndex + 1}`,
       x: labels,
       y: values,
+      text: textValues,
+      hovertemplate: `<b>%{x}</b><br>${aggregation.label || aggregation.key}<br><b>%{text}</b><extra></extra>`,
     };
+
+    if (traceOptions.type === 'bar') {
+      trace.textposition = traceOptions.orientation === 'h' ? 'middle right' : 'outside';
+      trace.textmode = 'text';
+    } else if (traceOptions.mode && traceOptions.mode.includes('lines')) {
+      trace.textposition = 'top';
+    } else if (traceOptions.mode && traceOptions.mode.includes('markers')) {
+      trace.textposition = 'top center';
+    } else {
+      trace.textposition = 'top center';
+      trace.textmode = 'text';
+    }
 
     traces.push(Object.assign(trace, traceOptions));
   });
@@ -376,6 +462,7 @@ function makeGroupedRenderer(
           width: dimensions.width,
           height: dimensions.height,
           showlegend: true,
+          hovermode: 'closest',
         };
 
         // Create a separate subplot for each aggregation
@@ -386,11 +473,10 @@ function makeGroupedRenderer(
             categoryKeys,
             datumKeys,
             index,
-            traceOptions
+            traceOptions,
+            this.props.plotlyOptions && this.props.plotlyOptions.cellFormatting
           );
 
-          // Use grid layout positioning - let Plotly handle domain automatically
-          // Set domain to specify which grid cell this pie belongs to
           trace.domain = {
             row: Math.floor(index / columns),
             column: index % columns,
@@ -430,6 +516,7 @@ function makeGroupedRenderer(
         grid: { rows, columns: 1, pattern: 'independent' },
         width: dimensions.width,
         height: dimensions.height,
+        hovermode: 'closest',
       };
 
       const rowKeys = pivotData.getRowKeys();
@@ -440,14 +527,14 @@ function makeGroupedRenderer(
       groupNames.forEach((groupName, groupIndex) => {
         const aggregations = groupedAggregations[groupName];
 
-        // All other charts show category-level data
         const traces = createCategoryDataTraces(
           pivotData,
           aggregations,
           categoryKeys,
           datumKeys,
           groupIndex,
-          traceOptions
+          traceOptions,
+          this.props.plotlyOptions && this.props.plotlyOptions.cellFormatting
         );
         data.push(...traces);
 
@@ -492,16 +579,25 @@ function makeScatterRenderer(PlotlyComponent) {
       const rowKeys = ensureNonEmptyKeys(pivotData.getRowKeys());
       const colKeys = ensureNonEmptyKeys(pivotData.getColKeys());
 
-      const data = { x: [], y: [], text: [], type: 'scatter', mode: 'markers' };
+      const data = {
+        x: [],
+        y: [],
+        text: [],
+        type: 'scatter',
+        mode: 'markers+text',
+        textposition: 'middle right',
+        hovertemplate: '<b>%{x}</b><br>%{y}<br><b>%{text}</b><extra></extra>',
+      };
 
       // Use forEach instead of map since we're not returning values
       rowKeys.forEach(rowKey => {
         colKeys.forEach(colKey => {
-          const v = pivotData.getAggregator(rowKey, colKey).value();
+          const aggregator = pivotData.getAggregator(rowKey, colKey);
+          const v = aggregator.value();
           if (v !== null) {
             data.x.push(colKey.join('-'));
             data.y.push(rowKey.join('-'));
-            data.text.push(v);
+            data.text.push(aggregator.format(v));
           }
         });
       });
@@ -568,11 +664,10 @@ export default function createPlotlyRenderers(PlotlyComponent) {
       {},
       true
     ),
-    // Grouped by Type renderers (new feature)
     'Grouped Bars by Type': makeGroupedRenderer(
       PlotlyComponent,
       { type: 'bar', orientation: 'h' },
-      { barmode: 'group' }
+      { barmode: 'group', }
     ),
     'Grouped Columns by Type': makeGroupedRenderer(
       PlotlyComponent,
@@ -581,7 +676,7 @@ export default function createPlotlyRenderers(PlotlyComponent) {
     ),
     'Grouped Lines by Type': makeGroupedRenderer(
       PlotlyComponent,
-      { mode: 'lines+markers' }
+      { mode: 'lines+markers+text' }
     ),
     'Grouped Areas by Type': makeGroupedRenderer(
       PlotlyComponent,
@@ -589,11 +684,11 @@ export default function createPlotlyRenderers(PlotlyComponent) {
     ),
     'Grouped Scatters by Type': makeGroupedRenderer(
       PlotlyComponent,
-      { mode: 'markers' }
+      { mode: 'markers+text', }
     ),
     'Grouped Pies by Type': makeGroupedRenderer(
       PlotlyComponent,
-      { type: 'pie', hoverinfo: 'label+value' }
+      { type: 'pie' }
     ),
   };
 }

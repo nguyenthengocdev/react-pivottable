@@ -52,10 +52,10 @@ export default class App extends React.Component {
                 aggregations: [
                     // { key: 'count-tips', aggregatorName: 'Count', vals: ['Employee Ref'], label: 'Count of Employee Ref' },
                     // { key: 'sum-total', aggregatorName: 'Count', vals: ['Claim Amount'], label: 'Count by Claim Amount' },
-                    { key: 'sum-claim', aggregatorName: 'Sum', vals: ['unitsSold'], label: 'Sum by unitsSold' },
-                    { key: 'sum-2', aggregatorName: 'Sum', vals: ['revenue'], label: 'Sum by revenue' },
+                    // { key: 'sum-claim', aggregatorName: 'Sum', vals: ['unitsSold'], label: 'Sum by unitsSold' },
+                    // { key: 'sum-2', aggregatorName: 'Sum', vals: ['revenue'], label: 'Sum by revenue' },
                 ],
-                rendererName: 'Grouped Columns by Type',
+                rendererName: 'Table',
                 // Custom sorters example:
                 // You can specify sorters in multiple ways:
                 // 1. By data type name (string): 'number', 'date', 'string', 'stringCaseInsensitive', 'natural'
@@ -89,8 +89,29 @@ export default class App extends React.Component {
                     DESC: '↓',
                     DEFAULT: '⇅',
                 },
-                plotlyOptions: { width: 900, height: 500 },
-                plotlyConfig: {},
+                plotlyOptions: {
+                    width: 900,
+                    height: 500,
+                    cellFormatting: {
+                        rules: [
+                            {
+                                format: {
+                                    thousandsSep: '',      // Thousand separator (e.g., 1,000). Use '' (empty string) to skip separator (decimal formatting still applies)
+                                    decimalSep: '.',        // Decimal separator (e.g., 1.23)
+                                    decimalPlaces: 2,       // Number of decimal places (0-9)
+                                    prefix: '',            // Prefix (e.g., $, €, ¥)
+                                    suffix: '',             // Suffix (e.g., %, units)
+                                    showOriginal: false     // Set to true to show original value without any formatting (no decimal places, separators, prefix, or suffix)
+                                }
+                            }
+                        ]
+                    },
+                    dragmode: false,
+                    clickmode: 'select'
+                },
+                plotlyConfig: {
+                    modeBarButtonsToRemove: ["autoScale2d", "autoscale", "hoverCompareCartesian", "hovercompare", "lasso2d", "pan2d", "resetScale2d", "select2d", "toggleSpikelines", "zoom2d"]
+                },
                 tableOptions: {
                     clickCallback: function (e, value, filters, pivotData) {
                         var names = [];
