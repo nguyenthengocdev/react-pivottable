@@ -90,6 +90,7 @@ export default class App extends React.Component {
                     DEFAULT: '⇅',
                 },
                 plotlyOptions: {
+                    displayText: true,
                     width: 900,
                     height: 500,
                     cellFormatting: {

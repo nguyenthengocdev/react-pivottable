@@ -344,7 +344,7 @@ function createCategoryDataTraces(
   datumKeys,
   groupIndex,
   traceOptions,
-  cellFormatting = null
+  plotlyOptions
 ) {
   const traces = [];
 
@@ -363,7 +363,7 @@ function createCategoryDataTraces(
         const aggregator = pivotData.getAggregator(categoryKey, datumKey, aggregation.key);
         const finalFormattedValue = applyCellFormatting(
           aggregator.value(),
-          cellFormatting,
+          plotlyOptions && plotlyOptions.cellFormatting,
           aggregator.format.bind(aggregator),
           aggregation.aggregatorName
         );
@@ -381,17 +381,23 @@ function createCategoryDataTraces(
       hovertemplate: `<b>%{x}</b><br>${aggregation.label || aggregation.key}<br><b>%{text}</b><extra></extra>`,
     };
 
-    if (traceOptions.type === 'bar') {
-      trace.textposition = traceOptions.orientation === 'h' ? 'middle right' : 'outside';
-      trace.textmode = 'text';
-    } else if (traceOptions.mode && traceOptions.mode.includes('lines')) {
-      trace.textposition = 'top';
-    } else if (traceOptions.mode && traceOptions.mode.includes('markers')) {
-      trace.textposition = 'top center';
-    } else {
-      trace.textposition = 'top center';
-      trace.textmode = 'text';
+    if (plotlyOptions && plotlyOptions.displayText) {
+      
+      if (traceOptions.type === 'bar') {
+        trace.textposition = traceOptions.orientation === 'h' ? 'middle right' : 'outside';
+        traceOptions.mode = 'text';
+      } else if (traceOptions.mode && traceOptions.mode.includes('lines')) {
+        trace.textposition = 'top';
+        traceOptions.mode = 'lines+markers+text';
+      } else if (traceOptions.mode && traceOptions.mode.includes('markers')) {
+        trace.textposition = 'top center';
+        traceOptions.mode = 'markers+text';
+      } else {
+        trace.textposition = 'top center';
+        traceOptions.mode = 'text';
+      }
     }
+    
 
     traces.push(Object.assign(trace, traceOptions));
   });
@@ -534,7 +540,7 @@ function makeGroupedRenderer(
           datumKeys,
           groupIndex,
           traceOptions,
-          this.props.plotlyOptions && this.props.plotlyOptions.cellFormatting
+          this.props.plotlyOptions
         );
         data.push(...traces);
 
@@ -676,7 +682,7 @@ export default function createPlotlyRenderers(PlotlyComponent) {
     ),
     'Grouped Lines by Type': makeGroupedRenderer(
       PlotlyComponent,
-      { mode: 'lines+markers+text' }
+      { mode: 'lines+markers' }
     ),
     'Grouped Areas by Type': makeGroupedRenderer(
       PlotlyComponent,
@@ -684,7 +690,7 @@ export default function createPlotlyRenderers(PlotlyComponent) {
     ),
     'Grouped Scatters by Type': makeGroupedRenderer(
       PlotlyComponent,
-      { mode: 'markers+text', }
+      { mode: 'markers' }
     ),
     'Grouped Pies by Type': makeGroupedRenderer(
       PlotlyComponent,
