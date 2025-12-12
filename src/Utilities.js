@@ -565,11 +565,12 @@ const aggregatorTemplates = {
           },
           format: formatter,
           value() {
+            const aggregator = data
+                .getAggregator(...Array.from(this.selector || []))
+                
             return (
               this.inner.value() /
-              data
-                .getAggregator(...Array.from(this.selector || []))
-                .inner.value()
+              ((aggregator.inner && aggregator.inner.value()) || 0)
             );
           },
           numInputs: wrapped(...Array.from(x || []))().numInputs,
