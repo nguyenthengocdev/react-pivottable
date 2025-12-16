@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import update from 'immutability-helper';
-import {PivotData, sortAs, getSort} from './Utilities';
+import { PivotData, sortAs, getSort } from './Utilities';
 import PivotTable from './PivotTable';
 import Sortable from 'react-sortablejs';
 import Draggable from 'react-draggable';
@@ -16,7 +16,7 @@ const AGG_KEY_LENGTH = 7;
 export class DraggableAttribute extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {open: false, filterText: ''};
+    this.state = { open: false, filterText: '' };
   }
 
   toggleValue(value) {
@@ -62,7 +62,7 @@ export class DraggableAttribute extends React.Component {
           }}
           onClick={() => this.props.moveFilterBoxToTop(this.props.name)}
         >
-          <a onClick={() => this.setState({open: false})} className="pvtCloseX">
+          <a onClick={() => this.setState({ open: false })} className="pvtCloseX">
             ×
           </a>
           <span className="pvtDragHandle">☰</span>
@@ -139,7 +139,7 @@ export class DraggableAttribute extends React.Component {
   }
 
   toggleFilterBox() {
-    this.setState({open: !this.state.open});
+    this.setState({ open: !this.state.open });
     this.props.moveFilterBoxToTop(this.props.name);
   }
 
@@ -186,7 +186,7 @@ DraggableAttribute.propTypes = {
 export class Dropdown extends React.PureComponent {
   render() {
     return (
-      <div className="pvtDropdown" style={{zIndex: this.props.zIndex}}>
+      <div className="pvtDropdown" style={{ zIndex: this.props.zIndex }}>
         <div
           onClick={e => {
             e.stopPropagation();
@@ -243,7 +243,7 @@ export class ConditionalFormattingUI extends React.Component {
     const tableOptions = this.props.tableOptions || {};
     return tableOptions.conditionalFormatting
       ? tableOptions.conditionalFormatting
-      : {rules: []};
+      : { rules: [] };
   }
 
   updateConditionalFormatting(conditionalFormatting) {
@@ -252,7 +252,7 @@ export class ConditionalFormattingUI extends React.Component {
       conditionalFormatting,
     });
     this.props.onChange({
-      tableOptions: {$set: tableOptions},
+      tableOptions: { $set: tableOptions },
     });
   }
 
@@ -312,7 +312,7 @@ export class ConditionalFormattingUI extends React.Component {
   }
 
   toggle() {
-    this.setState({open: !this.state.open});
+    this.setState({ open: !this.state.open });
     if (this.props.moveToTop) {
       this.props.moveToTop();
     }
@@ -321,16 +321,16 @@ export class ConditionalFormattingUI extends React.Component {
   render() {
     const cf = this.getConditionalFormatting();
     const conditionTypes = [
-      {value: 'greaterThan', label: 'Greater Than'},
-      {value: 'lessThan', label: 'Less Than'},
-      {value: 'greaterThanOrEqual', label: 'Greater Than Or Equal'},
-      {value: 'lessThanOrEqual', label: 'Less Than Or Equal'},
-      {value: 'equal', label: 'Equal'},
-      {value: 'notEqual', label: 'Not Equal'},
-      {value: 'empty', label: 'Empty'},
-      {value: 'notEmpty', label: 'Not Empty'},
-      {value: 'contains', label: 'Contains'},
-      {value: 'notContains', label: 'Not Contains'},
+      { value: 'greaterThan', label: 'Greater Than' },
+      { value: 'lessThan', label: 'Less Than' },
+      { value: 'greaterThanOrEqual', label: 'Greater Than Or Equal' },
+      { value: 'lessThanOrEqual', label: 'Less Than Or Equal' },
+      { value: 'equal', label: 'Equal' },
+      { value: 'notEqual', label: 'Not Equal' },
+      { value: 'empty', label: 'Empty' },
+      { value: 'notEmpty', label: 'Not Empty' },
+      { value: 'contains', label: 'Contains' },
+      { value: 'notContains', label: 'Not Contains' },
     ];
 
     const needsValue = type => {
@@ -346,7 +346,7 @@ export class ConditionalFormattingUI extends React.Component {
             e.stopPropagation();
             this.toggle();
           }}
-          style={{marginTop: '5px'}}
+          style={{ marginTop: '5px' }}
         >
           {this.state.open ? '▼' : '▶'} Conditional Formatting
         </button>
@@ -365,7 +365,7 @@ export class ConditionalFormattingUI extends React.Component {
             onClick={() => this.props.moveToTop && this.props.moveToTop()}
           >
             <a
-              onClick={() => this.setState({open: false})}
+              onClick={() => this.setState({ open: false })}
               className="pvtCloseX"
             >
               ×
@@ -373,7 +373,7 @@ export class ConditionalFormattingUI extends React.Component {
             <h4>Conditional Formatting Rules</h4>
 
             {cf.rules.length === 0 && (
-              <p style={{fontStyle: 'italic', color: '#666'}}>
+              <p style={{ fontStyle: 'italic', color: '#666' }}>
                 No rules defined. Add a rule to format cells based on
                 conditions.
               </p>
@@ -404,14 +404,14 @@ export class ConditionalFormattingUI extends React.Component {
                       e.stopPropagation();
                       this.removeRule(index);
                     }}
-                    style={{fontSize: '10px', padding: '2px 6px'}}
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
                   >
                     Remove
                   </button>
                 </div>
 
                 <div
-                  style={{marginBottom: '8px'}}
+                  style={{ marginBottom: '8px' }}
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                 >
@@ -445,7 +445,7 @@ export class ConditionalFormattingUI extends React.Component {
                         rules: newRules,
                       });
                     }}
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   >
                     {conditionTypes.map(ct => (
                       <option key={ct.value} value={ct.value}>
@@ -456,7 +456,7 @@ export class ConditionalFormattingUI extends React.Component {
                 </div>
 
                 {needsValue(rule.condition.type) && (
-                  <div style={{marginBottom: '8px'}}>
+                  <div style={{ marginBottom: '8px' }}>
                     <label
                       style={{
                         display: 'block',
@@ -470,7 +470,7 @@ export class ConditionalFormattingUI extends React.Component {
                       type="text"
                       value={
                         typeof rule.condition.value !== 'undefined' &&
-                        rule.condition.value !== null
+                          rule.condition.value !== null
                           ? rule.condition.value
                           : ''
                       }
@@ -482,17 +482,17 @@ export class ConditionalFormattingUI extends React.Component {
                           val === ''
                             ? null
                             : isNaN(val)
-                            ? val
-                            : parseFloat(val);
+                              ? val
+                              : parseFloat(val);
                         this.updateRule(index, 'condition.value', numVal);
                       }}
                       placeholder="Enter value"
-                      style={{width: '100%', padding: '4px'}}
+                      style={{ width: '100%', padding: '4px' }}
                     />
                   </div>
                 )}
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -517,11 +517,11 @@ export class ConditionalFormattingUI extends React.Component {
                         e.target.value
                       );
                     }}
-                    style={{width: '100%', padding: '2px'}}
+                    style={{ width: '100%', padding: '2px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -542,12 +542,12 @@ export class ConditionalFormattingUI extends React.Component {
                       e.stopPropagation();
                       this.updateRule(index, 'style.color', e.target.value);
                     }}
-                    style={{width: '100%', padding: '2px'}}
+                    style={{ width: '100%', padding: '2px' }}
                   />
                 </div>
 
                 <div
-                  style={{marginBottom: '8px'}}
+                  style={{ marginBottom: '8px' }}
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                 >
@@ -574,7 +574,7 @@ export class ConditionalFormattingUI extends React.Component {
                         e.target.value || null
                       );
                     }}
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   >
                     <option value="">Normal</option>
                     <option value="bold">Bold</option>
@@ -583,7 +583,7 @@ export class ConditionalFormattingUI extends React.Component {
                 </div>
 
                 <div
-                  style={{marginBottom: '8px'}}
+                  style={{ marginBottom: '8px' }}
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                 >
@@ -610,7 +610,7 @@ export class ConditionalFormattingUI extends React.Component {
                         e.target.value || null
                       );
                     }}
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   >
                     <option value="">Normal</option>
                     <option value="italic">Italic</option>
@@ -627,7 +627,7 @@ export class ConditionalFormattingUI extends React.Component {
                 e.stopPropagation();
                 this.addRule();
               }}
-              style={{width: '100%', marginTop: '10px'}}
+              style={{ width: '100%', marginTop: '10px' }}
             >
               + Add Rule
             </button>
@@ -647,7 +647,7 @@ ConditionalFormattingUI.propTypes = {
 
 ConditionalFormattingUI.defaultProps = {
   tableOptions: {},
-  moveToTop: () => {},
+  moveToTop: () => { },
   zIndex: 1,
 };
 
@@ -663,7 +663,7 @@ export class CellFormattingUI extends React.Component {
     const tableOptions = this.props.tableOptions || {};
     return tableOptions.cellFormatting
       ? tableOptions.cellFormatting
-      : {rules: []};
+      : { rules: [] };
   }
 
   updateCellFormatting(cellFormatting) {
@@ -671,8 +671,14 @@ export class CellFormattingUI extends React.Component {
     const tableOptions = Object.assign({}, currentTableOptions, {
       cellFormatting,
     });
+
+    const plotlyOptions = Object.assign({}, this.props.plotlyOptions || {}, {
+      cellFormatting,
+    });
+
     this.props.onChange({
-      tableOptions: {$set: tableOptions},
+      tableOptions: { $set: tableOptions },
+      plotlyOptions: { $set: plotlyOptions },
     });
   }
 
@@ -725,7 +731,7 @@ export class CellFormattingUI extends React.Component {
   }
 
   toggle() {
-    this.setState({open: !this.state.open});
+    this.setState({ open: !this.state.open });
     if (this.props.moveToTop) {
       this.props.moveToTop();
     }
@@ -743,7 +749,7 @@ export class CellFormattingUI extends React.Component {
             e.stopPropagation();
             this.toggle();
           }}
-          style={{marginTop: '5px'}}
+          style={{ marginTop: '5px' }}
         >
           {this.state.open ? '▼' : '▶'} Cell Formatting
         </button>
@@ -762,7 +768,7 @@ export class CellFormattingUI extends React.Component {
             onClick={() => this.props.moveToTop && this.props.moveToTop()}
           >
             <a
-              onClick={() => this.setState({open: false})}
+              onClick={() => this.setState({ open: false })}
               className="pvtCloseX"
             >
               ×
@@ -770,7 +776,7 @@ export class CellFormattingUI extends React.Component {
             <h4>Cell Formatting Rules</h4>
 
             {cf.rules.length === 0 && (
-              <p style={{fontStyle: 'italic', color: '#666'}}>
+              <p style={{ fontStyle: 'italic', color: '#666' }}>
                 No rules defined. Add a rule to format cell values.
               </p>
             )}
@@ -800,13 +806,13 @@ export class CellFormattingUI extends React.Component {
                       e.stopPropagation();
                       this.removeRule(index);
                     }}
-                    style={{fontSize: '10px', padding: '2px 6px'}}
+                    style={{ fontSize: '10px', padding: '2px 6px' }}
                   >
                     Remove
                   </button>
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -833,11 +839,11 @@ export class CellFormattingUI extends React.Component {
                     }}
                     placeholder=","
                     maxLength="1"
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -864,11 +870,11 @@ export class CellFormattingUI extends React.Component {
                     }}
                     placeholder="."
                     maxLength="1"
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -897,11 +903,11 @@ export class CellFormattingUI extends React.Component {
                       );
                     }}
                     placeholder="2"
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -923,11 +929,11 @@ export class CellFormattingUI extends React.Component {
                       this.updateRule(index, 'format.prefix', e.target.value);
                     }}
                     placeholder=""
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'block',
@@ -949,11 +955,11 @@ export class CellFormattingUI extends React.Component {
                       this.updateRule(index, 'format.suffix', e.target.value);
                     }}
                     placeholder=""
-                    style={{width: '100%', padding: '4px'}}
+                    style={{ width: '100%', padding: '4px' }}
                   />
                 </div>
 
-                <div style={{marginBottom: '8px'}}>
+                <div style={{ marginBottom: '8px' }}>
                   <label
                     style={{
                       display: 'flex',
@@ -977,7 +983,7 @@ export class CellFormattingUI extends React.Component {
                           e.target.checked
                         );
                       }}
-                      style={{marginRight: '6px'}}
+                      style={{ marginRight: '6px' }}
                     />
                     Show Original Value (no formatting)
                   </label>
@@ -992,7 +998,7 @@ export class CellFormattingUI extends React.Component {
                 e.stopPropagation();
                 this.addRule();
               }}
-              style={{width: '100%', marginTop: '10px'}}
+              style={{ width: '100%', marginTop: '10px' }}
             >
               + Add Rule
             </button>
@@ -1012,7 +1018,7 @@ CellFormattingUI.propTypes = {
 
 CellFormattingUI.defaultProps = {
   tableOptions: {},
-  moveToTop: () => {},
+  moveToTop: () => { },
   zIndex: 1,
 };
 
@@ -1050,7 +1056,7 @@ class PivotTableUI extends React.PureComponent {
     PivotData.forEachRecord(
       newState.data,
       this.props.derivedAttributes,
-      function(record) {
+      function (record) {
         newState.materializedInput.push(record);
         for (const attr of Object.keys(record)) {
           if (!(attr in newState.attrValues)) {
@@ -1078,7 +1084,7 @@ class PivotTableUI extends React.PureComponent {
   }
 
   propUpdater(key) {
-    return value => this.sendPropUpdate({[key]: {$set: value}});
+    return value => this.sendPropUpdate({ [key]: { $set: value } });
   }
 
   hasExternalAggregations() {
@@ -1107,8 +1113,8 @@ class PivotTableUI extends React.PureComponent {
       const baseVals = Array.isArray(agg.vals)
         ? agg.vals.slice()
         : aggregationsProvided
-        ? []
-        : fallbackVals;
+          ? []
+          : fallbackVals;
       return {
         key: agg.key || `agg-${idx}`,
         aggregatorName,
@@ -1175,11 +1181,11 @@ class PivotTableUI extends React.PureComponent {
     });
     const primary = sanitized[0];
     const command = {
-      aggregations: {$set: sanitized},
+      aggregations: { $set: sanitized },
     };
     if (!this.hasExternalAggregations()) {
-      command.aggregatorName = {$set: primary.aggregatorName};
-      command.vals = {$set: primary.vals};
+      command.aggregatorName = { $set: primary.aggregatorName };
+      command.vals = { $set: primary.vals };
     }
     this.sendPropUpdate(command);
   }
@@ -1211,7 +1217,7 @@ class PivotTableUI extends React.PureComponent {
       aggregationDisplayMode: normalizedMode,
     });
     this.sendPropUpdate({
-      tableOptions: {$set: tableOptions},
+      tableOptions: { $set: tableOptions },
     });
   }
 
@@ -1255,7 +1261,7 @@ class PivotTableUI extends React.PureComponent {
       this.sendPropUpdate({
         valueFilter: {
           [attribute]: values.reduce((r, v) => {
-            r[v] = {$set: true};
+            r[v] = { $set: true };
             return r;
           }, {}),
         },
@@ -1267,15 +1273,15 @@ class PivotTableUI extends React.PureComponent {
 
   removeValuesFromFilter(attribute, values) {
     this.sendPropUpdate({
-      valueFilter: {[attribute]: {$unset: values}},
+      valueFilter: { [attribute]: { $unset: values } },
     });
   }
 
   moveFilterBoxToTop(attribute) {
     this.setState(
       update(this.state, {
-        maxZIndex: {$set: this.state.maxZIndex + 1},
-        zIndices: {[attribute]: {$set: this.state.maxZIndex + 1}},
+        maxZIndex: { $set: this.state.maxZIndex + 1 },
+        zIndices: { [attribute]: { $set: this.state.maxZIndex + 1 } },
       })
     );
   }
@@ -1286,7 +1292,7 @@ class PivotTableUI extends React.PureComponent {
     if (sortDir !== null) {
       colSorts[attr] = sortDir;
     }
-    this.sendPropUpdate({colSorts: {$set: colSorts}});
+    this.sendPropUpdate({ colSorts: { $set: colSorts } });
   }
 
   handleRowSort(attr, sortDir) {
@@ -1295,7 +1301,7 @@ class PivotTableUI extends React.PureComponent {
     if (sortDir !== null) {
       rowSorts[attr] = sortDir;
     }
-    this.sendPropUpdate({rowSorts: {$set: rowSorts}});
+    this.sendPropUpdate({ rowSorts: { $set: rowSorts } });
   }
 
   isOpen(dropdown) {
@@ -1378,7 +1384,7 @@ class PivotTableUI extends React.PureComponent {
         colSymbol: '→',
         next: 'value_z_to_a',
       },
-      value_z_to_a: {rowSymbol: '↑', colSymbol: '←', next: 'key_a_to_z'},
+      value_z_to_a: { rowSymbol: '↑', colSymbol: '←', next: 'key_a_to_z' },
     };
 
     const attributeOptions = this.getAttributeOptions();
@@ -1459,7 +1465,7 @@ class PivotTableUI extends React.PureComponent {
         <div className="pvtAggregationModeToggle">
           <label
             htmlFor="pvtAggregationMode"
-            style={{marginRight: '6px', fontSize: '12px'}}
+            style={{ marginRight: '6px', fontSize: '12px' }}
           >
             Aggregation values on:
           </label>
@@ -1536,9 +1542,8 @@ class PivotTableUI extends React.PureComponent {
 
     const unusedAttrsCell = this.makeDnDCell(
       unusedAttrs,
-      order => this.setState({unusedOrder: order}),
-      `pvtAxisContainer pvtUnused ${
-        horizUnused ? 'pvtHorizList' : 'pvtVertList'
+      order => this.setState({ unusedOrder: order }),
+      `pvtAxisContainer pvtUnused ${horizUnused ? 'pvtHorizList' : 'pvtVertList'
       }`
     );
 
@@ -1568,7 +1573,7 @@ class PivotTableUI extends React.PureComponent {
       <td className="pvtOutput">
         <PivotTable
           {...update(this.props, {
-            data: {$set: this.state.materializedInput},
+            data: { $set: this.state.materializedInput },
           })}
           colSorts={this.props.colSorts || {}}
           rowSorts={this.props.rowSorts || {}}
@@ -1581,7 +1586,7 @@ class PivotTableUI extends React.PureComponent {
     if (horizUnused) {
       return (
         <table className="pvtUi">
-          <tbody onClick={() => this.setState({openDropdown: false})}>
+          <tbody onClick={() => this.setState({ openDropdown: false })}>
             <tr>
               {rendererCell}
               {unusedAttrsCell}
@@ -1601,7 +1606,7 @@ class PivotTableUI extends React.PureComponent {
 
     return (
       <table className="pvtUi">
-        <tbody onClick={() => this.setState({openDropdown: false})}>
+        <tbody onClick={() => this.setState({ openDropdown: false })}>
           <tr>
             {rendererCell}
             {aggregatorCell}

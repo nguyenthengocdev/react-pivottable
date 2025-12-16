@@ -108,7 +108,8 @@ export default class App extends React.Component {
                         ]
                     },
                     dragmode: false,
-                    clickmode: 'select'
+                    clickmode: 'select',
+                    displayText: false
                 },
                 plotlyConfig: {
                     modeBarButtonsToRemove: ["autoScale2d", "autoscale", "hoverCompareCartesian", "hovercompare", "lasso2d", "pan2d", "resetScale2d", "select2d", "toggleSpikelines", "zoom2d"]

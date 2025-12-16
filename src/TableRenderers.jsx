@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { PivotData, numberFormat } from './Utilities';
+import { PivotData, numberFormat, isNumeric, containsSpecialCharacters } from './Utilities';
 
 // helper function for setting row/col-span in pivotTableRenderer
 const spanSize = function (arr, i, j) {
@@ -181,17 +181,7 @@ function mergeStyles(...styles) {
 // Helper function to check if a string contains special characters (like -, /, etc.)
 // This prevents formatting of date strings or formatted strings
 // Only pure numeric strings (with optional decimal point and minus sign) should be formatted
-function containsSpecialCharacters(str) {
-  if (typeof str !== 'string') {
-    return false;
-  }
-  const trimmed = str.trim();
-  // Check if string contains any special characters that indicate it's not a raw number
-  // Allow: digits, decimal point, minus sign at start, plus sign at start, spaces
-  // Disallow: hyphens in middle, slashes, and other special characters
-  const pureNumericPattern = /^-?\d*\.?\d+$/;
-  return !pureNumericPattern.test(trimmed);
-}
+
 
 // Helper function to check if an aggregation should skip formatting
 // Aggregations like Count, First, Last should not be formatted
@@ -222,20 +212,14 @@ export function applyCellFormatting(
   defaultFormatter,
   aggregatorName = null
 ) {
+  const isNumber = isNumeric(value);
   // Don't format if aggregation type should skip formatting (e.g., Count, First, Last)
   // Only use defaultFormatter if value is numeric, otherwise return as-is
-  const isNumeric =
-    (typeof value === 'number' && !isNaN(value) && isFinite(value)) ||
-    (typeof value === 'string' &&
-      value.trim() !== '' &&
-      !containsSpecialCharacters(value) &&
-      !isNaN(parseFloat(value)) &&
-      isFinite(parseFloat(value)));
   if (shouldSkipFormattingForAggregation(aggregatorName)) {
-    if (isNumeric && defaultFormatter) {
+    if (isNumber && defaultFormatter) {
       return defaultFormatter(value);
     }
-    // Return raw value for non-numeric values (dates, strings, etc.)
+
     return value;
   }
 
@@ -253,7 +237,7 @@ export function applyCellFormatting(
     // When cellFormatting rules are cleared, return the raw value (not formatted)
     // This ensures all cells (regular, Totals, Aggregation) return to their original unformatted state
     // Return the raw numeric value for numbers, or the value as-is for other types
-    if (isNumeric) {
+    if (isNumber) {
       // Return raw numeric value without any formatting
       if (typeof value === 'number') {
         return value;
@@ -277,7 +261,7 @@ export function applyCellFormatting(
   let numericValue = value;
 
   // Convert string numbers to actual numbers for formatting
-  if (isNumeric && typeof value === 'string') {
+  if (isNumber && typeof value === 'string') {
     numericValue = parseFloat(value);
   }
 
@@ -285,7 +269,7 @@ export function applyCellFormatting(
   const matchingRule = cellFormatting.rules[0];
 
   // If we found a matching rule and value is numeric, apply its formatting
-  if (matchingRule && matchingRule.format && isNumeric) {
+  if (matchingRule && matchingRule.format && isNumber) {
     const format = matchingRule.format;
     const formatter = numberFormat({
       digitsAfterDecimal: 'decimalPlaces' in format ? format.decimalPlaces : 2,

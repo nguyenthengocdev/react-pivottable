@@ -24,6 +24,38 @@ const addSeparators = function(nStr, thousandsSep, decimalSep) {
   return x1 + x2;
 };
 
+export const containsSpecialCharacters = function(str) {
+  if (typeof str !== 'string') {
+    return false;
+  }
+  const trimmed = str.trim();
+  // Check if string contains any special characters that indicate it's not a raw number
+  // Allow: digits, decimal point, minus sign at start, plus sign at start, spaces
+  // Disallow: hyphens in middle, slashes, and other special characters
+  const pureNumericPattern = /^-?\d*\.?\d+$/;
+  return !pureNumericPattern.test(trimmed);
+}
+
+
+export const isNumeric = function(value) {
+    if (typeof value === 'number') {
+        return !isNaN(value) && isFinite(value);
+    }
+
+    if (typeof value === 'string') {
+        const trimmedValue = value.trim();
+        if (trimmedValue === '' || containsSpecialCharacters(trimmedValue)) {
+            return false;
+        }
+
+        const parsedValue = parseFloat(trimmedValue);
+        return !isNaN(parsedValue) && isFinite(parsedValue);
+    }
+
+    return false;
+}
+
+
 const numberFormat = function(opts_in) {
   const defaults = {
     digitsAfterDecimal: 2,
@@ -396,7 +428,7 @@ const aggregatorTemplates = {
         return {
           sum: 0,
           push(record) {
-            if (!isNaN(parseFloat(record[attr]))) {
+            if (isNumeric(record[attr])) {
               this.sum += parseFloat(record[attr]);
             }
           },
@@ -421,11 +453,9 @@ const aggregatorTemplates = {
           ),
           push(record) {
             let x = record[attr];
-            if (['min', 'max'].includes(mode)) {
+            if (['min', 'max'].includes(mode) && isNumeric(x)) {
               x = parseFloat(x);
-              if (!isNaN(x)) {
-                this.val = Math[mode](x, this.val !== null ? this.val : x);
-              }
+              this.val = Math[mode](x, this.val !== null ? this.val : x);
             }
             if (
               mode === 'first' &&
@@ -461,10 +491,12 @@ const aggregatorTemplates = {
         return {
           vals: [],
           push(record) {
-            const x = parseFloat(record[attr]);
-            if (!isNaN(x)) {
-              this.vals.push(x);
+            if (!isNumeric(record[attr])) {
+              return
             }
+
+            const x = parseFloat(record[attr]);
+            this.vals.push(x);
           },
           value() {
             if (this.vals.length === 0) {
@@ -489,10 +521,11 @@ const aggregatorTemplates = {
           m: 0.0,
           s: 0.0,
           push(record) {
-            const x = parseFloat(record[attr]);
-            if (isNaN(x)) {
-              return;
+            if(!isNumeric(record[attr])) {
+              return 
             }
+            const x = parseFloat(record[attr]);
+            
             this.n += 1.0;
             if (this.n === 1.0) {
               this.m = x;
@@ -534,10 +567,10 @@ const aggregatorTemplates = {
           sumNum: 0,
           sumDenom: 0,
           push(record) {
-            if (!isNaN(parseFloat(record[num]))) {
+            if (isNumeric(record[num])) {
               this.sumNum += parseFloat(record[num]);
             }
-            if (!isNaN(parseFloat(record[denom]))) {
+            if (isNumeric(record[denom])) {
               this.sumDenom += parseFloat(record[denom]);
             }
           },
@@ -622,6 +655,30 @@ class AggregatorCell {
   }
 }
 
+export const aggregationNames ={
+  'Count': 'Count',
+  'Count Unique Values': 'Count Unique Values',
+  'List Unique Values': 'List Unique Values',
+  Sum: 'Sum',
+  'Integer Sum': 'Integer Sum',
+  Average: 'Average',
+  Median: 'Median',
+  'Sample Variance': 'Sample Variance',
+  'Sample Standard Deviation': 'Sample Standard Deviation',
+  Minimum: 'Minimum',
+  Maximum: 'Maximum',
+  First: 'First',
+  Last: 'Last',
+  'Sum over Sum': 'Sum over Sum',
+  'Count as Fraction of Total': 'Count as Fraction of Total',
+  'Sum as Fraction of Total': 'Sum as Fraction of Total',
+  'Sum as Fraction of Rows': 'Sum as Fraction of Rows',
+  'Sum as Fraction of Columns': 'Sum as Fraction of Columns',
+  'Count as Fraction of Rows': 'Count as Fraction of Rows',
+  'Count as Fraction of Columns': 'Count as Fraction of Columns',
+}
+
+//TODO: replace key with aggregationNames[key] above
 // default aggregators & renderers use US naming and number formatting
 const aggregators = (tpl => ({
   Count: tpl.count(usFmtInt),
